@@ -1,0 +1,20 @@
+{
+  "name": "worm",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "https://github.com/ziplabinc/worm-client.git",
+  "author": "ye0jun <ye0jun@naver.com>",
+  "license": "MIT",
+  "dependencies": {
+    "matter-js": "^0.14.2",
+    "msgpack5": "^4.2.1",
+    "pixi-cull": "^1.0.0",
+    "pixi-viewport": "^4.17.1",
+    "pixi.js": "^5.3.3",
+    "socket.io-client": "^3.0.3",
+    "stats.js": "^0.17.0"
+  },
+  "devDependencies": {
+    "webpack": "^5.6.0"
+  }
+}

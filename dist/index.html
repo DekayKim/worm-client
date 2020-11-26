@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>worm game</title>
+    <link rel="stylesheet" href="css/title.css" />
+    <link rel="stylesheet" href="css/gameover.css" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        font-family: "Noto Sans KR", sans-serif;
+      }
+      ::-webkit-scrollbar {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <script src="./bundle.js"></script>
+    <div id="title">
+      <h1>지렁이 게임.io</h1>
+      <div id="nickname-container">
+        <h2>#닉네임</h2>
+        <input type="text" id="nickname" />
+      </div>
+      <div id="button-container">
+        <button class="button" id="start-button">시작</button>
+        <button class="button" id="another-game-button">다른 게임 하기</button>
+      </div>
+    </div>
+    <div id="gameover">
+      <div id="gameover-wrapper">
+        <h1>지렁이 게임.io</h1>
+        <div class="rank-container">
+          <h2 class="rank-title">#본인순위</h2>
+          <div id="my-rank" class="rank-list-container"></div>
+        </div>
+        <div id="button-container">
+          <button>다른 게임 하기</button>
+          <button id="restart">다시 시작</button>
+        </div>
+        <div class="rank-container">
+          <h2 class="rank-title">#본인최고순위</h2>
+          <div id="my-best" class="rank-list-container"></div>
+        </div>
+        <div class="rank-container">
+          <h2 class="rank-title">#랭크순위</h2>
+          <div id="all-rank" class="rank-list-container"></div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
