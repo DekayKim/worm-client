@@ -1005,6 +1005,11 @@ schema-utils@^3.0.0:
     ajv "^6.12.5"
     ajv-keywords "^3.5.2"
 
+schemapack@^1.4.2:
+  version "1.4.2"
+  resolved "https://registry.yarnpkg.com/schemapack/-/schemapack-1.4.2.tgz#8b582a55e128e345854ce3fb380371c58264f349"
+  integrity sha1-i1gqVeEo40WFTOP7OANxxYJk80k=
+
 serialize-javascript@^5.0.1:
   version "5.0.1"
   resolved "https://registry.yarnpkg.com/serialize-javascript/-/serialize-javascript-5.0.1.tgz#7886ec848049a462467a97d3d918ebb2aaf934f4"

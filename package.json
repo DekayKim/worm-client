@@ -11,6 +11,7 @@
     "pixi-cull": "^1.0.0",
     "pixi-viewport": "^4.17.1",
     "pixi.js": "^5.3.3",
+    "schemapack": "^1.4.2",
     "socket.io-client": "^3.0.3",
     "stats.js": "^0.17.0"
   },

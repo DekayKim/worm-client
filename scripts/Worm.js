@@ -8,8 +8,8 @@ const defaultOptions = {
   color: 0xffffff
 };
 
-const DEFAULT_SPEED = 100;
-const BOOST_SPEED = 300;
+const DEFAULT_SPEED = 200;
+const BOOST_SPEED = 400;
 
 export default class Worm {
   constructor(userOptions) {
@@ -206,8 +206,8 @@ export default class Worm {
       if (this.angle < this._AIAngle) this.angle += 1;
       else this.angle -= 1;
     } else {
-      if (Share.rotateDirection === "right") this.angle += 1;
-      else this.angle -= 1;
+      if (Share.rotateDirection === "right") this.angle += dt * 5;
+      else this.angle -= dt * 5;
     }
 
     const head = this.getHead();
@@ -260,10 +260,10 @@ export default class Worm {
 
       body.rotation = radian + this._rotation;
       Share.cull.updateObject(body);
-      Body.setPosition(body.matter.body, {
-        x: body.x,
-        y: body.y
-      });
+      // Body.setPosition(body.matter.body, {
+      //   x: body.x,
+      //   y: body.y
+      // });
     }
 
     this.radius = 20 + this.point * 0.05;
@@ -439,6 +439,7 @@ export default class Worm {
   }
 
   setBodyPosition(index, position) {
+    console.log(this.id);
     if (this.bodies[index] === undefined || this.bodies[index] === null) {
       this._increase();
     }
@@ -454,5 +455,26 @@ export default class Worm {
     this.point = point;
     this.radius = 20 + this.point * 0.05;
     this._adjustSize();
+  }
+
+  _createPhysics() {
+    for (let i = 0; i < this.bodies.length; i++) {
+      this.bodies[i].matter.body = Bodies.circle(
+        this.bodies[i].x,
+        this.bodies[i].y,
+        this.radius
+      );
+      this.bodies[i].matter.body._sprite = this.bodies[i];
+      this.bodies[i].matter.body.class = this;
+      this.bodies[i].matter.body.collisionFilter.group = this.matterGroup;
+      this.bodies[i].matter.body.collisionFilter.category = 0x0001;
+      this.bodies[i].matter.body.collisionFilter.mask = 0x0101;
+      World.add(Share.matter.engine.world, this.bodies[i].matter.body);
+    }
+  }
+  _removePhysics() {
+    for (let i = 0; i < this.bodies.length; i++) {
+      World.remove(Share.matter.engine.world, this.bodies[i].matter.body);
+    }
   }
 }

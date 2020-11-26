@@ -4,6 +4,7 @@ import Utility from "./Utility";
 import Share from "./share";
 import WormManager from "./WormManager";
 import FoodManager from "./FoodManager";
+import sp from "schemapack";
 
 const { encode, decode } = msgpack();
 const serverURL = "192.168.0.90:3636";
@@ -25,6 +26,19 @@ const socketList = [
 export default class Socket {
   static init() {
     this.connection = io(`ws://${serverURL}`);
+    this.connection.on("schema", data => {
+      const { C2S, S2C } = data;
+      this.schema = {
+        S2C: Object.fromEntries(
+          Object.entries(S2C).map(([name, data]) => [name, sp.build(data)])
+        ),
+        C2S: Object.fromEntries(
+          Object.entries(C2S).map(([name, data]) => [name, sp.build(data)])
+        )
+      };
+
+      console.log(this.schema);
+    });
 
     socketList.map(key => {
       if (this[`_on_${key}`]) this._on(key, this[`_on_${key}`].bind(this));
@@ -111,12 +125,7 @@ export default class Socket {
   }
 
   static _on_ai(data) {
-    console.log("ai", data);
-
-    Share.set(
-      "ai",
-      data.map(ai => ai.id)
-    );
+    Share.set("ai", data);
   }
 
   static _on_position(data) {
@@ -125,7 +134,6 @@ export default class Socket {
   }
 
   static _on_point(data) {
-    console.log("point", data);
     const worm = WormManager.get(data.id);
     if (worm) {
       const eatAmount = data.point - worm.point;
@@ -137,7 +145,6 @@ export default class Socket {
   }
 
   static _on_new_worm(data) {
-    console.log("new_worm", data);
     const { name, id, x, y, point, isAI } = data;
     WormManager.create({
       x,
@@ -158,8 +165,6 @@ export default class Socket {
   }
 
   static _on_bound_check(data) {
-    console.log("bound_check", data);
-    // const myWorm = WormManager.get(Share.myId);
     const myWorms = [WormManager.get(Share.myId)];
     Share.ai.map(aiId => myWorms.push(WormManager.get(aiId)));
     for (let j = 0; j < myWorms.length; j++) {
@@ -179,7 +184,6 @@ export default class Socket {
         }
       }
 
-      console.log(myWorm.id);
       if (inbound) {
         this.inbound(
           data.requestId,
@@ -192,14 +196,12 @@ export default class Socket {
   }
 
   static _on_inbound(data) {
-    console.log("inbound", data);
     const { responseId, bodies, paths } = data;
     WormManager.setBodiesPosition(responseId, bodies, paths);
   }
 
   // data = id
   static _on_delete_worm(data) {
-    console.log("delete_worm", data);
     const worm = WormManager.get(data);
     if (worm) worm.die();
   }
@@ -207,13 +209,17 @@ export default class Socket {
   /* ------------------------------------------ */
 
   static _emit(key, data, force = false) {
-    if (this._connect || force) this.connection.emit(key, encode(data));
+    const schema = this.schema.C2S[key];
+    this.connection.emit(key, schema.encode(data));
   }
 
   static _on(key, fn) {
     this.connection.on(key, data => {
-      const decodedData = data ? decode(data) : data;
-      fn(decodedData);
+      if (this.schema) {
+        const schema = this.schema.S2C[key];
+        const decodedData = data ? schema.decode(data) : data;
+        fn(decodedData);
+      }
     });
   }
 }
