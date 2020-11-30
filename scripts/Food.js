@@ -30,23 +30,11 @@ export default class Food {
 
     this._updateTime = Math.random() * 1000;
 
-    this.matter = {
-      body: Bodies.circle(x, y, radius)
-    };
-    this.matter.body.class = this;
-    this.matter.body.collisionFilter.group = Share.foodGroup;
-    this.matter.body.collisionFilter.mask = 0x0010;
-
-    World.add(Share.matter.engine.world, this.matter.body);
-
     Share.viewport.addChild(this.sprite);
     Share.cull.add(this.sprite);
   }
 
   eaten(worm) {
-    World.remove(Share.matter.engine.world, this.matter.body);
-    this.matter = null;
-
     /* 네트워크로 지우는 명령어 전달 */
 
     this.eatenTime = Date.now();
@@ -62,8 +50,6 @@ export default class Food {
   }
 
   removeById() {
-    if (this.matter) World.remove(Share.matter.engine.world, this.matter.body);
-    this.matter = null;
     Share.cull.remove(this.sprite);
     Share.viewport.removeChild(this.sprite);
     this.sprite = null;

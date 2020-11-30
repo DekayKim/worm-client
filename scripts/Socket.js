@@ -7,12 +7,13 @@ import FoodManager from "./FoodManager";
 import sp from "schemapack";
 
 const { encode, decode } = msgpack();
-const serverURL = "192.168.0.90:3636";
+const serverURL = "192.168.0.71:3636";
 
 const socketList = [
   "enter",
   "ai",
   "position",
+  "position_all",
   "point",
   "new_worm",
   "new_food",
@@ -133,6 +134,14 @@ export default class Socket {
     if (worm) worm.setPosition(data.x, data.y);
   }
 
+  static _on_position_all(data) {
+    for (let i = 0; i < data.length; i++) {
+      if (data[i].id === Share.myId) continue;
+      const worm = WormManager.get(data[i].id);
+      if (worm) worm.setPosition(data[i].x, data[i].y);
+    }
+  }
+
   static _on_point(data) {
     const worm = WormManager.get(data.id);
     if (worm) {
@@ -211,6 +220,7 @@ export default class Socket {
   static _emit(key, data, force = false) {
     const schema = this.schema.C2S[key];
     this.connection.emit(key, schema.encode(data));
+    // this.connection.emit(key, data);
   }
 
   static _on(key, fn) {
@@ -219,6 +229,7 @@ export default class Socket {
         const schema = this.schema.S2C[key];
         const decodedData = data ? schema.decode(data) : data;
         fn(decodedData);
+        // fn(data);
       }
     });
   }

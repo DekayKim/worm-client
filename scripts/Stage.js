@@ -2,8 +2,13 @@ import Share from "./share";
 
 export default class Stage {
   constructor() {
-    // const graphics = new PIXI.Graphics();
-    // graphics.zIndex = -999999;
+    const graphics = new PIXI.Graphics();
+    graphics.zIndex = 999999;
+    Share.set("graphics", graphics);
+
+    const graphics1 = new PIXI.Graphics();
+    graphics1.zIndex = 999999;
+    Share.set("graphics1", graphics1);
     // const gap = 100;
     // graphics.lineStyle(1, 0x97e9f2);
     // for (let i = 0; i < Share.width / gap; i++) {
@@ -22,5 +27,7 @@ export default class Stage {
     tilingSprite.zIndex = -999999999;
 
     Share.viewport.addChild(tilingSprite);
+    Share.viewport.addChild(graphics);
+    Share.viewport.addChild(graphics1);
   }
 }

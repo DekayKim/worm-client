@@ -17,9 +17,6 @@ export default class WormManager {
       this.worms[keys[i]].update(dt);
       if (keys[i] === Share.myId) {
         Socket.position(this.worms[keys[i]]);
-      } else if (Share.ai && Share.ai.includes(keys[i])) {
-        Socket.position(this.worms[keys[i]]);
-        // console.log(keys[i]);
       }
     }
   }
@@ -30,6 +27,10 @@ export default class WormManager {
 
   static get(id) {
     return this.worms[id];
+  }
+
+  static getAll() {
+    return Object.values(this.worms);
   }
 
   static setBodiesPosition(id, bodies, paths) {

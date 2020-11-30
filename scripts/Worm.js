@@ -1,6 +1,6 @@
 import Share from "./share";
-import { Engine, Render, World, Bodies, Body, Vector } from "matter-js";
 import WormManager from "./WormManager";
+import Socket from "./Socket";
 
 const defaultOptions = {
   x: 0,
@@ -21,6 +21,7 @@ export default class Worm {
     this.bodies = [];
     this.paths = [];
     this.type = "worm";
+    this.state = "alive";
     this.point = this.options.point;
     this.id = this.options.id;
     this.name = this.options.name;
@@ -33,7 +34,6 @@ export default class Worm {
     this._rotation = Math.radians(180);
     this._followDistance = this.radius / 2;
     this._spriteIndex = 0;
-    this.matterGroup = Body.nextGroup(true);
 
     const head = this._createSprite(this.options.x, this.options.y, true);
 
@@ -66,13 +66,15 @@ export default class Worm {
       event => {
         const keyName = event.key;
 
+        if (this.id !== Share.myId) return;
+
         if (keyName === "w") {
           this.angle += 10;
         } else if (keyName === "s") {
           this.angle -= 10;
         } else if (keyName === "q") {
           this.speed = 0;
-        } else if (event.keyCode === 32 && this.isAI !== true) {
+        } else if (event.keyCode === 32) {
           this.boosterStart();
         }
 
@@ -125,27 +127,11 @@ export default class Worm {
     sprite.prev = { x, y };
     sprite.tint = 0x92c731;
     sprite.zIndex = this._spriteIndex--;
-
-    sprite.matter = {
-      body: Bodies.circle(x, y, this.radius)
-    };
-
-    sprite.matter.body._sprite = sprite;
-    sprite.matter.body.class = this;
-    sprite.matter.body.collisionFilter.group = this.matterGroup;
-    sprite.matter.body.collisionFilter.category = 0x0100;
-    sprite.matter.body.collisionFilter.mask = 0x0101;
-    World.add(Share.matter.engine.world, sprite.matter.body);
+    sprite._dataPosition = { x, y };
+    sprite._class = this;
 
     if (isHead) {
       sprite._isHead = true;
-      sprite.matter.head = Bodies.circle(x, y, this.radius * 2);
-      sprite.matter.head._sprite = sprite;
-      sprite.matter.head.class = this;
-      sprite.matter.head.collisionFilter.group = this.matterGroup;
-      sprite.matter.head.collisionFilter.category = 0x0010;
-      sprite.matter.head.collisionFilter.mask = 0x0001;
-      World.add(Share.matter.engine.world, sprite.matter.head);
     }
 
     return sprite;
@@ -186,42 +172,208 @@ export default class Worm {
   }
 
   setPosition(x, y) {
+    this._dataUpdate(x, y);
+    // Share.cull.updateObject(head);
+    // this._bodiesUpdate(distance);
+  }
+
+  _spriteUpdate(sprite, position) {
+    sprite.position.set(position.x, position.y);
+    Share.cull.updateObject(sprite);
+  }
+
+  /* 
+    Socket - Position 을 통해 받은 다른 지렁이의 위치 조정
+    특이사항 - 데이터만 수정
+  */
+  _dataUpdate(x, y) {
     const head = this.getHead();
-    const distance = Math.sqrt((head.x - x) ** 2 + (head.y - y) ** 2);
-    head.position.set(x, y);
-    Share.cull.updateObject(head);
-    Body.setPosition(head.matter.body, { x: head.x, y: head.y });
-    Body.setPosition(head.matter.head, { x: head.x, y: head.y });
-    this._bodiesUpdate(distance);
+    const distance = Math.getDistance(head._dataPosition, { x, y });
+    head._dataPosition = { x, y };
+    this._spriteUpdate(head, head._dataPosition);
+
+    // const distanceWithPrev = Math.sqrt(
+    //   (head.x - head.prev.x) ** 2 + (head.y - head.prev.y) ** 2
+    // );
+
+    const distanceWithPrev = Math.getDistance(head._dataPosition, head.prev);
+    if (distanceWithPrev > this._followDistance) {
+      const angle = Math.getAngleWithTwoPoint(head.prev, head._dataPosition);
+      const path = {
+        x: head.prev.x + Math.cos(angle) * this._followDistance,
+        y: head.prev.y + Math.sin(angle) * this._followDistance
+      };
+
+      head.prev.x = head._dataPosition.x;
+      head.prev.y = head._dataPosition.y;
+      this.paths.unshift(path);
+    }
+
+    const bound = {
+      left: head._dataPosition.x,
+      right: head._dataPosition.x,
+      top: head._dataPosition.y,
+      bottom: head._dataPosition.y
+    };
+
+    for (let i = 1; i < this.bodies.length; i++) {
+      if (!this.paths[i - 1]) {
+        break;
+      }
+
+      // 최초에 데이터가 없을 때
+      if (this.bodies[i]._dataPosition === undefined) {
+        this.bodies[i]._dataPosition = {
+          x: this.bodies[i].x,
+          y: this.bodies[i].y
+        };
+      }
+
+      const radian = Math.getAngleWithTwoPoint(
+        this.bodies[i]._dataPosition,
+        this.paths[i - 1]
+      );
+
+      this.bodies[i]._dataPosition = {
+        x: this.bodies[i]._dataPosition.x + Math.cos(radian) * distance,
+        y: this.bodies[i]._dataPosition.y + Math.sin(radian) * distance
+      };
+      this._spriteUpdate(this.bodies[i], this.bodies[i]._dataPosition);
+
+      // console.log(this.bodies[i]._dataPosition);
+
+      this._boundUpdate(bound, this.bodies[i]._dataPosition);
+    }
+    this.bound = bound;
+
+    // Share.graphics.clear();
+    // Share.graphics.beginFill(this._boundColor);
+    // Share.graphics.alpha = 0.5;
+    // Share.graphics.drawRect(
+    //   bound.left - this.radius,
+    //   bound.top - this.radius,
+    //   Math.abs(bound.right - bound.left) + this.radius * 2,
+    //   Math.abs(bound.bottom - bound.top) + this.radius * 2
+    // );
+    // Share.graphics.endFill();
+    // console.log(this.bound);
+  }
+
+  _boundUpdate(bound, position) {
+    if (position.x < bound.left) bound.left = position.x;
+    if (position.x > bound.right) bound.right = position.x;
+    if (position.y < bound.top) bound.top = position.y;
+    if (position.y > bound.bottom) bound.bottom = position.y;
+  }
+
+  AIUpdate(dt) {
+    const head = this.getHead();
+    const second = this.bodies[1];
+    const angle = Math.getAngleWithTwoPoint(second.position, head.position);
+    const linePoint = {
+      x: Math.cos(angle) * (this.radius + 50),
+      y: Math.sin(angle) * (this.radius + 50)
+    };
+
+    // Share.graphics1.clear();
+    // Share.graphics1.lineStyle(1, 0xffd900, 1);
+    // Share.graphics1.moveTo(head.x, head.y);
+    // Share.graphics1.lineTo(head.x + linePoint.x, head.y + linePoint.y);
+
+    const worms = WormManager.getAll();
+    for (let i = 0; i < worms.length; i++) {
+      const worm = worms[i];
+      if (worm.id === this.id) continue;
+
+      if (worm.bound) {
+        const hit = Math.lineRect(
+          head.x,
+          head.y,
+          head.x + linePoint.x,
+          head.y + linePoint.y,
+          worm.bound.left - worm.radius,
+          worm.bound.top - worm.radius,
+          Math.abs(worm.bound.right - worm.bound.left) + worm.radius * 2,
+          Math.abs(worm.bound.bottom - worm.bound.top) + worm.radius * 2
+        );
+
+        if (hit) {
+          // console.log(worm.id, "hit--");
+          this._hitCheck(worm);
+          // worm._boundColor = 0x00ff00;
+        } else {
+          // worm._boundColor = 0xff0000;
+        }
+      }
+    }
   }
 
   update(dt) {
     // const _finalAngle = 180 * Math.atan2(_mouseAngle.x - )
 
-    if (this.isAI) {
-      if (Date.now() - this._AITime > 1000) {
-        this._AITime = Date.now();
-        this._AIAngle += Math.random() * 90 - 45;
-      }
-      if (this.angle < this._AIAngle) this.angle += 1;
-      else this.angle -= 1;
-    } else {
-      if (Share.rotateDirection === "right") this.angle += dt * 5;
-      else this.angle -= dt * 5;
+    if (Share.ai && Share.ai.includes(this.id)) {
+      this.AIUpdate();
     }
+    if (this.id !== Share.myId) return;
+
+    if (Share.rotateDirection === "right") this.angle += dt * 5;
+    else this.angle -= dt * 5;
 
     const head = this.getHead();
     const radian = Math.radians(this.angle - 90);
     const distance = (this.speed / 60) * dt;
 
+    const prevHeadPosition = {
+      x: head.x,
+      y: head.y
+    };
     /* Head Move */
-    if (this.id === Share.myId || (Share.ai && Share.ai.includes(this.id))) {
-      head.x += Math.cos(radian) * distance;
-      head.y += Math.sin(radian) * distance;
-      head.rotation = radian + this._rotation;
-      Share.cull.updateObject(head);
-      Body.setPosition(head.matter.body, { x: head.x, y: head.y });
-      Body.setPosition(head.matter.head, { x: head.x, y: head.y });
+    // if (this.id === Share.myId) {
+    head.x += Math.cos(radian) * distance;
+    head.y += Math.sin(radian) * distance;
+    head.rotation = radian + this._rotation;
+    Share.cull.updateObject(head);
+
+    const lineAngle = Math.getAngleWithTwoPoint(
+      prevHeadPosition,
+      head.position
+    );
+    const linePoint = {
+      x: Math.cos(lineAngle) * (this.radius + 50),
+      y: Math.sin(lineAngle) * (this.radius + 50)
+    };
+
+    Share.graphics1.clear();
+    Share.graphics1.lineStyle(1, 0xffd900, 1);
+    Share.graphics1.moveTo(head.x, head.y);
+    Share.graphics1.lineTo(head.x + linePoint.x, head.y + linePoint.y);
+    // }
+
+    const worms = WormManager.getAll();
+    for (let i = 0; i < worms.length; i++) {
+      const worm = worms[i];
+      if (worm.id === Share.myId) continue;
+
+      if (worm.bound) {
+        const hit = Math.lineRect(
+          head.x,
+          head.y,
+          head.x + linePoint.x,
+          head.y + linePoint.y,
+          worm.bound.left - worm.radius,
+          worm.bound.top - worm.radius,
+          Math.abs(worm.bound.right - worm.bound.left) + worm.radius * 2,
+          Math.abs(worm.bound.bottom - worm.bound.top) + worm.radius * 2
+        );
+
+        if (hit) {
+          console.log(worm.id, "hit");
+          this._hitCheck(worm);
+          // worm._boundColor = 0x00ff00;
+        } else {
+          // worm._boundColor = 0xff0000;
+        }
+      }
     }
 
     this.nickname.position.set(
@@ -245,6 +397,13 @@ export default class Worm {
       this.paths.unshift(path);
     }
 
+    const bound = {
+      left: head.x,
+      right: head.x,
+      top: head.y,
+      bottom: head.y
+    };
+
     for (let i = 0; i < this.paths.length; i++) {
       const body = this.bodies[i + 1];
       if (body === undefined) {
@@ -258,12 +417,13 @@ export default class Worm {
       body.x += Math.cos(radian) * distance;
       body.y += Math.sin(radian) * distance;
 
-      body.rotation = radian + this._rotation;
+      // console.log(this.bodies[i]._dataPosition);
+
+      this._boundUpdate(bound, body.position);
+      this.bound = bound;
+
+      // body.rotation = radian + this._rotation;
       Share.cull.updateObject(body);
-      // Body.setPosition(body.matter.body, {
-      //   x: body.x,
-      //   y: body.y
-      // });
     }
 
     this.radius = 20 + this.point * 0.05;
@@ -273,6 +433,23 @@ export default class Worm {
     }
 
     Share.cull.updateObject(this.nickname);
+  }
+
+  _hitCheck(worm) {
+    const head = this.getHead();
+    for (let i = 0; i < worm.bodies.length; i++) {
+      const dx = head.x - worm.bodies[i].x;
+      const dy = head.y - worm.bodies[i].y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      if (distance < this.radius + worm.bodies[i]._class.radius) {
+        if (this.state === "alive") {
+          Socket.conflict(this.id, this.bodies);
+          console.log("die");
+          this.state = "die";
+        }
+      }
+    }
   }
 
   _headUpdate(dt) {
@@ -285,8 +462,6 @@ export default class Worm {
     head.y += Math.sin(radian) * distance;
     head.rotation = radian + this._rotation;
     Share.cull.updateObject(head);
-    Body.setPosition(head.matter.body, { x: head.x, y: head.y });
-    Body.setPosition(head.matter.head, { x: head.x, y: head.y });
   }
 
   _bodiesUpdate(distance) {
@@ -316,11 +491,14 @@ export default class Worm {
         break;
       }
 
+      const distanceToPath = Math.sqrt(
+        (this.paths[i].x - body.x) ** 2 + (this.paths[i].y - body.y) ** 2
+      );
       const radian = Math.getAngleWithTwoPoint(body.position, this.paths[i]);
-
+      const moveAmount = Math.min(distanceToPath, distance);
       // const rotation = (radian + this._rotation - body.rotation) / 60;
-      body.x += Math.cos(radian) * distance;
-      body.y += Math.sin(radian) * distance;
+      body.x += Math.cos(radian) * moveAmount;
+      body.y += Math.sin(radian) * moveAmount;
 
       // const test = Math.sqrt((body.x - prev.x) ** 2 + (body.y - prev.y) ** 2);
       // if (test >= this._followDistance * 1.2) {
@@ -328,12 +506,8 @@ export default class Worm {
       //   body.y = this.paths[i].y;
       // }
 
-      body.rotation = radian + this._rotation;
+      // body.rotation = radian + this._rotation;
       Share.cull.updateObject(body);
-      Body.setPosition(body.matter.body, {
-        x: body.x,
-        y: body.y
-      });
     }
   }
 
@@ -363,10 +537,6 @@ export default class Worm {
 
   die() {
     for (let i = 0; i < this.bodies.length; i++) {
-      if (i === 0)
-        World.remove(Share.matter.engine.world, this.bodies[i].matter.head);
-      World.remove(Share.matter.engine.world, this.bodies[i].matter.body);
-
       Share.cull.remove(this.bodies[i]);
       Share.viewport.removeChild(this.bodies[i]);
       this.bodies[i] = null;
@@ -384,25 +554,6 @@ export default class Worm {
     this._followDistance = this.radius / 2;
     for (let i = 0; i < this.bodies.length; i++) {
       this.bodies[i].width = this.bodies[i].height = this.radius * 2;
-      if (this.bodies[i].matter.body.circleRadius !== this.radius) {
-        this._updateMatterRadius(this.bodies[i]);
-      }
-      // head이면 magnet 범위 늘려주기
-      if (i === 0) {
-        World.remove(Share.matter.engine.world, this.bodies[i].matter.head);
-        this.bodies[i].matter.head = Bodies.circle(
-          this.bodies[i].x,
-          this.bodies[i].y,
-          this.radius * 2
-        );
-        this.bodies[i].matter.head._sprite = this.bodies[i];
-        this.bodies[i].matter.head.class = this;
-        this.bodies[i].matter.head.collisionFilter.group = this.matterGroup;
-        this.bodies[i].matter.head.collisionFilter.category = 0x0010;
-        this.bodies[i].matter.head.collisionFilter.mask = 0x0001;
-
-        World.add(Share.matter.engine.world, this.bodies[i].matter.head);
-      }
     }
   }
 
@@ -414,17 +565,7 @@ export default class Worm {
     }
   }
 
-  _updateMatterRadius(sprite) {
-    World.remove(Share.matter.engine.world, sprite.matter.body);
-    sprite.matter.body = Bodies.circle(sprite.x, sprite.y, this.radius);
-
-    sprite.matter.body._sprite = sprite;
-    sprite.matter.body.class = this;
-    sprite.matter.body.collisionFilter.group = this.matterGroup;
-    sprite.matter.body.collisionFilter.category = 0x0001;
-    sprite.matter.body.collisionFilter.mask = 0x0101;
-    World.add(Share.matter.engine.world, sprite.matter.body);
-  }
+  _updateMatterRadius(sprite) {}
 
   _matterPosition() {
     const head = this.getHead();
@@ -445,36 +586,11 @@ export default class Worm {
     }
     this.bodies[index].position.set(position.x, position.y);
     Share.cull.updateObject(this.bodies[index]);
-    Body.setPosition(this.bodies[index].matter.body, {
-      x: position.x,
-      y: position.y
-    });
   }
 
   setPoint(point) {
     this.point = point;
     this.radius = 20 + this.point * 0.05;
     this._adjustSize();
-  }
-
-  _createPhysics() {
-    for (let i = 0; i < this.bodies.length; i++) {
-      this.bodies[i].matter.body = Bodies.circle(
-        this.bodies[i].x,
-        this.bodies[i].y,
-        this.radius
-      );
-      this.bodies[i].matter.body._sprite = this.bodies[i];
-      this.bodies[i].matter.body.class = this;
-      this.bodies[i].matter.body.collisionFilter.group = this.matterGroup;
-      this.bodies[i].matter.body.collisionFilter.category = 0x0001;
-      this.bodies[i].matter.body.collisionFilter.mask = 0x0101;
-      World.add(Share.matter.engine.world, this.bodies[i].matter.body);
-    }
-  }
-  _removePhysics() {
-    for (let i = 0; i < this.bodies.length; i++) {
-      World.remove(Share.matter.engine.world, this.bodies[i].matter.body);
-    }
   }
 }

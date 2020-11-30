@@ -1,7 +1,6 @@
 import * as PIXI from "pixi.js";
 import { Viewport } from "pixi-viewport";
 import Cull from "pixi-cull";
-import Matter from "matter-js";
 import Share from "./scripts/share";
 import Game from "./scripts/Game";
 import Stage from "./scripts/Stage";
@@ -13,24 +12,7 @@ window.PIXI = PIXI;
 const stats = new Stats();
 stats.showPanel(0);
 document.body.append(stats.dom);
-const matter = {};
-console.log(Matter);
-matter.engine = Matter.Engine.create(); // matter.render = Render.create({
-//   element: document.body,
-//   engine: matter.engine,
-//   options: {
-//     width: window.innerWidth,
-//     height: window.innerHeight
-//   }
-// });
-// matter.render.canvas.style.position = "absolute";
-// matter.render.canvas.style.opacity = "0.7";
-// Render.run(matter.render);
 
-matter.engine.world.gravity.y = 0; // Engine.run(matter.engine);
-
-Share.set("matter", matter);
-Share.set("foodGroup", Matter.Body.nextGroup(true));
 var app = new PIXI["Application"]({
   autoResize: true,
   resolution: devicePixelRatio
@@ -72,23 +54,13 @@ loader.load((loader, resources) => {
   var cull = new Cull.Simple();
   Share.set("cull", cull);
   cull.cull(viewport.getVisibleBounds());
-  new PIXI["BitmapFont"].from("nickname", {
-    fontFamily: "spoqa",
-    fontSize: 24,
-    fill: "white"
-  });
-  new PIXI["BitmapFont"].from("nickname", {
-    fontFamily: "spoqa",
-    fontSize: 24,
-    fill: "white"
-  });
+
   const stage = new Stage();
   const game = new Game();
   resize(); // matter.render.canvas.style.background =
   //   "0% 0% / contain rgba(15, 15, 19,0.5)";
 
   app.ticker.add(dt => {
-    Matter.Engine.update(matter.engine);
     stats.begin();
 
     if (viewport.dirty) {
@@ -115,4 +87,51 @@ Math.getAngleWithTwoPoint = function(point1, point2) {
 
 Math.angleDiff = function(radianA, radianB) {
   return this.degrees(radianA) + 360 - (this.degrees(radianB) + 360);
+};
+
+Math.getDistance = function(pointA, pointB) {
+  return Math.sqrt((pointA.x - pointB.x) ** 2 + (pointA.y - pointB.y) ** 2);
+};
+
+Math.lineLine = function(x1, y1, x2, y2, x3, y3, x4, y4) {
+  // calculate the direction of the lines
+  const uA =
+    ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) /
+    ((y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1));
+  const uB =
+    ((x2 - x1) * (y1 - y3) - (y2 - y1) * (x1 - x3)) /
+    ((y4 - y3) * (x2 - x1) - (x4 - x3) * (y2 - y1));
+
+  // if uA and uB are between 0-1, lines are colliding
+  if (uA >= 0 && uA <= 1 && uB >= 0 && uB <= 1) {
+    // optionally, draw a circle where the lines meet
+
+    /*
+      !Draw!
+      const intersectionX = x1 + uA * (x2 - x1);
+      const intersectionY = y1 + uA * (y2 - y1);
+      fill(255, 0, 0);
+      noStroke();
+      ellipse(intersectionX, intersectionY, 20, 20);
+    */
+
+    return true;
+  }
+  return false;
+};
+
+Math.lineRect = function(x1, y1, x2, y2, rx, ry, rw, rh) {
+  // check if the line has hit any of the rectangle's sides
+  // uses the Line/Line function below
+  const left = this.lineLine(x1, y1, x2, y2, rx, ry, rx, ry + rh);
+  const right = this.lineLine(x1, y1, x2, y2, rx + rw, ry, rx + rw, ry + rh);
+  const top = this.lineLine(x1, y1, x2, y2, rx, ry, rx + rw, ry);
+  const bottom = this.lineLine(x1, y1, x2, y2, rx, ry + rh, rx + rw, ry + rh);
+
+  // if ANY of the above are true, the line
+  // has hit the rectangle
+  if (left || right || top || bottom) {
+    return true;
+  }
+  return false;
 };

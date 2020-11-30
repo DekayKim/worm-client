@@ -5,22 +5,22 @@ import DOMEvents from "./DOMEvents";
 
 export default class Collision {
   static init() {
-    Events.on(Share.matter.engine, "collisionActive", event => {
-      if (event.pairs[0]) {
-        const { bodyA, bodyB } = event.pairs[0];
-        const typeCheck = new Set();
-        typeCheck.add(bodyA.class.type);
-        typeCheck.add(bodyB.class.type);
+    // Events.on(Share.matter.engine, "collisionActive", event => {
+    //   if (event.pairs[0]) {
+    //     const { bodyA, bodyB } = event.pairs[0];
+    //     const typeCheck = new Set();
+    //     typeCheck.add(bodyA.class.type);
+    //     typeCheck.add(bodyB.class.type);
 
-        if (typeCheck.size === 1) {
-          this.wormCollision(bodyA, bodyB);
-        } else {
-          const worm = bodyA.class.type === "worm" ? bodyA.class : bodyB.class;
-          const food = bodyA.class.type === "food" ? bodyA.class : bodyB.class;
-          this.foodCollision(worm, food);
-        }
-      }
-    });
+    //     if (typeCheck.size === 1) {
+    //       this.wormCollision(bodyA, bodyB);
+    //     } else {
+    //       const worm = bodyA.class.type === "worm" ? bodyA.class : bodyB.class;
+    //       const food = bodyA.class.type === "food" ? bodyA.class : bodyB.class;
+    //       this.foodCollision(worm, food);
+    //     }
+    //   }
+    // });
   }
 
   static wormCollision(wormA, wormB) {
