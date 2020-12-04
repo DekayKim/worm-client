@@ -14,7 +14,6 @@ export default class Game {
     WormManager.init();
     FoodManager.init();
     Collision.init();
-
     setTimeout(() => {
       // DOMEvents.showGameOver();
     }, 6000);
@@ -34,26 +33,33 @@ export default class Game {
       // });
     }
 
-    const mouse = Share.app.renderer.plugins.interaction.mouse.global;
+    // console.log(Share.app.renderer.plugins.interaction.eventData.data.global);
+    // const mouse = Share.app.renderer.plugins.interaction.mouse.global;
 
-    let mouseAngle =
-      (180 *
-        Math.atan2(
-          mouse.x - Share.windowSize.width / 2,
-          mouse.y - Share.windowSize.height / 2
-        )) /
-      Math.PI;
-    mouseAngle = mouseAngle > 0 ? 180 - mouseAngle : -180 - mouseAngle;
-    if (hero) {
-      let heroAngle = hero.angle % 360;
-      if (heroAngle < 0) heroAngle += 360;
-      if (heroAngle > 180) heroAngle -= 360;
-      var dif = heroAngle - mouseAngle;
+    Share.set("rotateDirection", "right");
 
-      if ((dif < 0 && dif > -180) || dif > 180) {
-        Share.set("rotateDirection", "right");
-      } else if ((dif > 0 && dif < 180) || dif < -180) {
-        Share.set("rotateDirection", "left");
+    if (Share.app.renderer.plugins.interaction.eventData.data) {
+      const mouse =
+        Share.app.renderer.plugins.interaction.eventData.data.global;
+      let mouseAngle =
+        (180 *
+          Math.atan2(
+            mouse.x - Share.windowSize.width / 2,
+            mouse.y - Share.windowSize.height / 2
+          )) /
+        Math.PI;
+      mouseAngle = mouseAngle > 0 ? 180 - mouseAngle : -180 - mouseAngle;
+      if (hero) {
+        let heroAngle = hero.angle % 360;
+        if (heroAngle < 0) heroAngle += 360;
+        if (heroAngle > 180) heroAngle -= 360;
+        var dif = heroAngle - mouseAngle;
+
+        if ((dif < 0 && dif > -180) || dif > 180) {
+          Share.set("rotateDirection", "right");
+        } else if ((dif > 0 && dif < 180) || dif < -180) {
+          Share.set("rotateDirection", "left");
+        }
       }
     }
 

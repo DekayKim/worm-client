@@ -1,4 +1,5 @@
 import Share from "./share";
+import WormManager from "./WormManager";
 
 export default class Stage {
   constructor() {
@@ -9,6 +10,11 @@ export default class Stage {
     const graphics1 = new PIXI.Graphics();
     graphics1.zIndex = 999999;
     Share.set("graphics1", graphics1);
+
+    const minimap = new PIXI.Graphics();
+    minimap.zIndex = 999999;
+    Share.set("minimap", minimap);
+    this.minimap = minimap;
     // const gap = 100;
     // graphics.lineStyle(1, 0x97e9f2);
     // for (let i = 0; i < Share.width / gap; i++) {
@@ -20,7 +26,7 @@ export default class Stage {
     // }
 
     const tilingSprite = new PIXI.TilingSprite(
-      gameResources.hex.texture,
+      gameResources.pattern_4.texture,
       10000,
       10000
     );
@@ -29,5 +35,55 @@ export default class Stage {
     Share.viewport.addChild(tilingSprite);
     Share.viewport.addChild(graphics);
     Share.viewport.addChild(graphics1);
+    Share.app.stage.addChild(minimap);
+  }
+
+  startDrawMinimap() {
+    this.drawMinimap();
+    this.drawMinimapId = setInterval(() => this.drawMinimap(), 1000);
+  }
+
+  stopDrawMinimap() {
+    this.minimap.clear();
+
+    clearInterval(this.drawMinimapId);
+  }
+
+  drawMinimap() {
+    const size = Math.min(Share.windowSize.width, Share.windowSize.height) / 5;
+    const start = {
+      x: Share.windowSize.width - size,
+      y: Share.windowSize.height - size
+    };
+    this.minimap.clear();
+    this.minimap.beginFill(0x000000, 0.5);
+    this.minimap.lineStyle(3, 0xffffff, 1);
+    this.minimap.drawRect(start.x, start.y, size, size);
+
+    this.minimap.lineStyle(0, 0xffffff, 1);
+    const worms = WormManager.getAll();
+    this.minimap.beginFill(0xffffff, 0.8);
+    for (let i = 0; i < worms.length; i++) {
+      if (worms[i]) {
+        const head = worms[i].getHead();
+        this.minimap.drawCircle(
+          start.x + (head.x / 10000) * size,
+          start.y + (head.y / 10000) * size,
+          3
+        );
+      }
+    }
+
+    const myWorm = WormManager.get(Share.myId);
+    if (myWorm) {
+      this.minimap.beginFill(0xffffff, 1);
+      this.minimap.lineStyle(3, 0xff0000, 0.5);
+      const head = myWorm.getHead();
+      this.minimap.drawCircle(
+        start.x + (head.x / 10000) * size,
+        start.y + (head.y / 10000) * size,
+        5
+      );
+    }
   }
 }

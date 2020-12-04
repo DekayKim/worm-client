@@ -6,6 +6,7 @@
   "author": "ye0jun <ye0jun@naver.com>",
   "license": "MIT",
   "dependencies": {
+    "@pixi/filter-glow": "^3.1.1",
     "matter-js": "^0.14.2",
     "msgpack5": "^4.2.1",
     "pixi-cull": "^1.0.0",

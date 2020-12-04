@@ -1,12 +1,24 @@
 import Socket from "./Socket";
+import WormManager from "./WormManager";
+import FoodManager from "./FoodManager";
+import SpatialHash from "./SpatialHash";
 
 export default class DOMEvents {
   static init() {
     this.titleDiv = this._get("title");
+    this.ingameDiv = this._get("ingame");
     this.gameOverDiv = this._get("gameover");
+    this.rankerContainers = document.getElementsByClassName("ranker-container");
+
+    for (let i = 0; i < this.rankerContainers.length; i++) {
+      const container = this.rankerContainers[i];
+      container.style.opacity = 1 - i * 0.08;
+    }
     this.title();
     this.gameOver();
     this._hide(this.gameOverDiv);
+
+    this._setRankerContainer(1, "지금", 5000, "#ff0000");
   }
 
   static title() {
@@ -15,6 +27,7 @@ export default class DOMEvents {
       this._hide(this._get("title"));
 
       Socket.enter(this._get("nickname").value);
+      this.showIngame();
     });
 
     /* input edit */
@@ -35,11 +48,29 @@ export default class DOMEvents {
     });
   }
 
+  static showIngame() {
+    this._show(this.ingameDiv);
+  }
+
+  static _setRankerContainer(
+    rank = null,
+    name = null,
+    score = null,
+    color = null
+  ) {
+    const container = this.rankerContainers[rank - 1];
+    if (name !== null) container.childNodes[3].textContent = name;
+    if (score !== null)
+      container.childNodes[5].textContent = score.toLocaleString();
+    if (color !== null) container.style.color = color;
+  }
+
   static showGameOver() {
     this._hide(this.titleDiv);
     this._show(this.gameOverDiv);
     this.gameOverDiv.style.opacity = 0;
     this.transitionStartTime = Date.now();
+    this._get("restart").disabled = true;
     this.transitionId = setInterval(() => {
       const elapsedTime = Date.now() - this.transitionStartTime;
       let progress = elapsedTime / 1000;
@@ -49,6 +80,12 @@ export default class DOMEvents {
 
       if (progress === 1) {
         clearInterval(this.transitionId);
+
+        /* done */
+        WormManager.reset();
+        FoodManager.reset();
+        SpatialHash.reset();
+        this._get("restart").disabled = false;
       }
     }, 1000 / 60);
   }

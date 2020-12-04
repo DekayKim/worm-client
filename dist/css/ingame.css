@@ -1,0 +1,30 @@
+#ingame {
+  padding: 1rem 0px;
+  position: absolute;
+  right: 1vmin;
+  top: 1vmin;
+  width: 10vw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: white;
+}
+
+#ingame .ranker-container {
+  width: 90%;
+  display: flex;
+}
+
+#ingame .ranker-container .ranking {
+  width: 20%;
+}
+
+#ingame .ranker-container .name {
+  width: 50%;
+  text-align: center;
+}
+
+#ingame .ranker-container .score {
+  width: 30%;
+  text-align: right;
+}

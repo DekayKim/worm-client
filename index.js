@@ -6,6 +6,7 @@ import Game from "./scripts/Game";
 import Stage from "./scripts/Stage";
 import * as Stats from "stats.js";
 import DOMEvents from "./scripts/DOMEvents";
+import SpatialHash from "./scripts/SpatialHash";
 
 window.PIXI = PIXI;
 
@@ -41,14 +42,22 @@ loader.add("oval", "./assets/oval.png");
 loader.add("oval2", "./assets/oval2.png");
 loader.add("glow", "./assets/glow.png");
 loader.add("hex", "./assets/hex.jpg");
+loader.add("pattern_1", "./assets/pattern_1.png");
+loader.add("pattern_2", "./assets/pattern_2.jpg");
+loader.add("pattern_3", "./assets/pattern_3.jpg");
+loader.add("pattern_4", "./assets/pattern_4.jpg");
+loader.add("mask", "./assets/mask.png");
+loader.add("pixel", "./assets/pixel.png");
 loader.add("spoqa", "./assets/spoqa.fnt");
 loader.load((loader, resources) => {
   window.gameResources = resources;
   document.body.appendChild(app.view); // create viewport
 
+  Share.set("wormDelay", new Set());
   Share.set("app", app);
   Share.set("viewport", viewport);
   Share.set("width", 10000);
+  SpatialHash.init();
   app.stage.addChild(viewport);
   viewport.moveCenter(5000, 5000);
   var cull = new Cull.Simple();
@@ -56,6 +65,7 @@ loader.load((loader, resources) => {
   cull.cull(viewport.getVisibleBounds());
 
   const stage = new Stage();
+  Share.set("stage", stage);
   const game = new Game();
   resize(); // matter.render.canvas.style.background =
   //   "0% 0% / contain rgba(15, 15, 19,0.5)";
@@ -83,6 +93,13 @@ Math.degrees = function(radians) {
 
 Math.getAngleWithTwoPoint = function(point1, point2) {
   return Math.atan2(point2.y - point1.y, point2.x - point1.x);
+};
+
+Math.getPointWithAngleDistance = function(radian, distance) {
+  return {
+    x: distance * this.cos(radian),
+    y: distance * this.sin(radian)
+  };
 };
 
 Math.angleDiff = function(radianA, radianB) {
@@ -134,4 +151,36 @@ Math.lineRect = function(x1, y1, x2, y2, rx, ry, rw, rh) {
     return true;
   }
   return false;
+};
+
+Math.OBB = function(positionA, radiusA, positionB, radiusB) {
+  const distance = Math.sqrt(
+    (positionA.x - positionB.x) ** 2 + (positionA.y - positionB.y) ** 2
+  );
+
+  if (distance < radiusA + radiusB) {
+    return true;
+  }
+  return false;
+};
+
+Math.pointInRect = function(point, bound) {
+  if (
+    point.x >= bound.left && // right of the left edge AND
+    point.x <= bound.right && // left of the right edge AND
+    point.y >= bound.top && // below the top AND
+    point.y <= bound.bottom
+  ) {
+    return true;
+  }
+  return false;
+};
+
+window.getRandomColor = () => {
+  var letters = "0123456789ABCDEF";
+  var color = "";
+  for (var i = 0; i < 6; i++) {
+    color += letters[Math.floor(Math.random() * 16)];
+  }
+  return color;
 };

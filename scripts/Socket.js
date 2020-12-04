@@ -7,7 +7,8 @@ import FoodManager from "./FoodManager";
 import sp from "schemapack";
 
 const { encode, decode } = msgpack();
-const serverURL = "192.168.0.71:3636";
+// const serverURL = "192.168.0.71:3636";
+const serverURL = "118.128.86.111:3636";
 
 const socketList = [
   "enter",
@@ -22,13 +23,16 @@ const socketList = [
   "bound_check",
   "inbound",
   "delete_worm",
-  "disconnect"
+  "disconnect",
+  "boost_start",
+  "boost_end"
 ];
 export default class Socket {
   static init() {
     this.connection = io(`ws://${serverURL}`);
     this.connection.on("schema", data => {
       const { C2S, S2C } = data;
+      console.log(data);
       this.schema = {
         S2C: Object.fromEntries(
           Object.entries(S2C).map(([name, data]) => [name, sp.build(data)])
@@ -37,8 +41,6 @@ export default class Socket {
           Object.entries(C2S).map(([name, data]) => [name, sp.build(data)])
         )
       };
-
-      console.log(this.schema);
     });
 
     socketList.map(key => {
@@ -50,7 +52,7 @@ export default class Socket {
   }
 
   static enter(name) {
-    this._emit("enter", { name }, true);
+    this._emit("enter", { name, color: getRandomColor() }, true);
   }
 
   static boundCheck(requestId, position) {
@@ -87,6 +89,18 @@ export default class Socket {
     this._emit("conflict", { id, looserBodies });
   }
 
+  static boost_start() {
+    this._emit("boost_start");
+  }
+
+  static boost_end() {
+    this._emit("boost_end");
+  }
+
+  static boost_ing(position) {
+    this._emit("boost_ing", position);
+  }
+
   static _on_connect() {
     if (this._connect === undefined) this._connect = true;
   }
@@ -103,7 +117,7 @@ export default class Socket {
     Share.set("myId", myId);
     let myWorm;
     for (let i = 0; i < player.length; i++) {
-      const { name, id, x, y, point, isAI } = player[i];
+      const { name, id, x, y, point, isAI, color } = player[i];
       if (id === myId) {
         myWorm = player[i];
         continue;
@@ -114,6 +128,7 @@ export default class Socket {
         id,
         name,
         point,
+        color,
         isAI
       });
     }
@@ -121,6 +136,8 @@ export default class Socket {
     for (let i = 0; i < food.length; i++) {
       FoodManager.create(food[i]);
     }
+
+    Share.stage.startDrawMinimap();
 
     this.boundCheck(myId, { x: myWorm.x, y: myWorm.y });
   }
@@ -136,41 +153,83 @@ export default class Socket {
 
   static _on_position_all(data) {
     for (let i = 0; i < data.length; i++) {
-      if (data[i].id === Share.myId) continue;
       const worm = WormManager.get(data[i].id);
-      if (worm) worm.setPosition(data[i].x, data[i].y);
+      // if (data[i].id === Share.myId) {
+      //   console.log(data[i]);
+      // }
+      try {
+        worm.setPoint(data[i].point);
+      } catch {
+        console.log("생성되기전", data[i].id);
+      }
+      if (data[i].id === Share.myId) continue;
+      if (worm) {
+        worm.setPosition(data[i].x, data[i].y);
+      }
     }
   }
 
   static _on_point(data) {
-    const worm = WormManager.get(data.id);
-    if (worm) {
-      const eatAmount = data.point - worm.point;
-      if (eatAmount > 0) {
-        worm.eat(eatAmount);
-      }
-      // worm.setPoint(data.point);
-    }
+    // console.log(data);
+    // const worm = WormManager.get(data.id);
+    // if (worm) {
+    //   const eatAmount = data.point - worm.point;
+    //   if (eatAmount > 0) {
+    //     worm.eat(eatAmount);
+    //   }
+    //   // worm.setPoint(data.point);
+    // }
   }
 
   static _on_new_worm(data) {
-    const { name, id, x, y, point, isAI } = data;
-    WormManager.create({
-      x,
-      y,
-      id,
-      name,
-      point,
-      isAI
-    });
+    for (let i = 0; i < data.length; i++) {
+      const { name, id, x, y, point, isAI, color, delay } = data[i];
+      // console.log(id);
+      if (delay) {
+        const timeoutId = setTimeout(() => {
+          WormManager.create({
+            x,
+            y,
+            id,
+            name,
+            point,
+            isAI,
+            color
+          });
+          Share.wormDelay.delete(timeoutId);
+        }, Math.min(delay - 100, delay));
+        Share.wormDelay.add(timeoutId);
+      } else {
+        WormManager.create({
+          x,
+          y,
+          id,
+          name,
+          point,
+          isAI,
+          color
+        });
+      }
+    }
   }
 
   static _on_new_food(data) {
-    FoodManager.create(data);
+    for (let i = 0; i < data.length; i++) {
+      FoodManager.create(data[i]);
+    }
   }
 
   static _on_delete_food(data) {
-    FoodManager.removeById(data);
+    for (let i = 0; i < data.length; i++) {
+      const { foodId, wormId } = data[i];
+      if (wormId !== "n") {
+        const food = FoodManager.get(foodId);
+        const worm = WormManager.get(wormId);
+        if (food && worm) food.eaten(worm);
+      } else {
+        FoodManager.removeById(foodId);
+      }
+    }
   }
 
   static _on_bound_check(data) {
@@ -204,6 +263,16 @@ export default class Socket {
     }
   }
 
+  static _on_boost_start(data) {
+    const worm = WormManager.get(data.id);
+    if (worm) worm.boosterEffectOn();
+  }
+
+  static _on_boost_end(data) {
+    const worm = WormManager.get(data.id);
+    if (worm) worm.boosterEffectOff();
+  }
+
   static _on_inbound(data) {
     const { responseId, bodies, paths } = data;
     WormManager.setBodiesPosition(responseId, bodies, paths);
@@ -212,14 +281,20 @@ export default class Socket {
   // data = id
   static _on_delete_worm(data) {
     const worm = WormManager.get(data);
-    if (worm) worm.die();
+    if (worm) {
+      // console.log(worm.nickname.text);
+      worm.die();
+    } else {
+      console.warn(data, "없음");
+    }
   }
 
   /* ------------------------------------------ */
 
   static _emit(key, data, force = false) {
     const schema = this.schema.C2S[key];
-    this.connection.emit(key, schema.encode(data));
+    if (data) this.connection.emit(key, schema.encode(data));
+    else this.connection.emit(key);
     // this.connection.emit(key, data);
   }
 

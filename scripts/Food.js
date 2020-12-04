@@ -1,24 +1,28 @@
 import { Engine, Render, World, Bodies, Body, Vector } from "matter-js";
 import Share from "./share";
 import FoodManager from "./FoodManager";
+import SpatialHash from "./SpatialHash";
+import Socket from "./Socket";
 
 const MAGNET_TIME = 500;
 export default class Food {
   constructor(data) {
-    const { x, y, id, amount } = data;
+    const { x, y, id, amount, color } = data;
     this.id = id;
     this.origin = { x, y };
     this.type = "food";
     this.amount = amount;
     const radius = (15 + amount * 2) / 2;
+    this.radius = radius;
+    const glow = new PIXI.Sprite(gameResources.glow.texture);
     this.sprite = new PIXI.Sprite(gameResources.oval.texture);
     this.sprite.position.set(x, y);
     this.sprite.anchor.set(0.5, 0.5);
     this.sprite.width = this.sprite.height = radius * 2;
     this.sprite.zIndex = -99999;
     this.sprite.alpha = 0;
+    this.sprite.tint = parseInt(color, 16);
 
-    const glow = new PIXI.Sprite(gameResources.glow.texture);
     glow.anchor.set(0.5, 0.5);
     this.glow = glow;
     this.sprite.addChild(glow);
@@ -30,6 +34,7 @@ export default class Food {
 
     this._updateTime = Math.random() * 1000;
 
+    SpatialHash.add(this);
     Share.viewport.addChild(this.sprite);
     Share.cull.add(this.sprite);
   }
@@ -37,6 +42,9 @@ export default class Food {
   eaten(worm) {
     /* 네트워크로 지우는 명령어 전달 */
 
+    if (worm.id === Share.myId || (Share.ai && Share.ai.includes(worm.id)))
+      Socket.eat(worm, this);
+    SpatialHash.delete(this);
     this.eatenTime = Date.now();
     this.target = worm;
     this.from = { x: this.sprite.x, y: this.sprite.y };
@@ -45,6 +53,7 @@ export default class Food {
   remove() {
     Share.cull.remove(this.sprite);
     Share.viewport.removeChild(this.sprite);
+    this.sprite.destroy({ children: true });
     this.sprite = null;
     FoodManager.remove(this);
   }
@@ -68,7 +77,7 @@ export default class Food {
 
       const head = this.target.getHead();
 
-      if (head === null) {
+      if (head === null || head === undefined) {
         this.remove();
         return;
       }
@@ -84,6 +93,7 @@ export default class Food {
       if (progress === 1) {
         this.target.eat(this.amount);
         this.remove();
+        return;
       }
     } else {
       const move = (this._updateTime % 1) * Math.PI * 2;

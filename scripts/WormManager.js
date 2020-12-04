@@ -40,4 +40,16 @@ export default class WormManager {
       // this.worms[id].bodies[i].position.set(bodies[i].x, bodies[i].y);
     }
   }
+
+  static reset() {
+    const worms = this.getAll();
+    for (let i = 0; i < worms.length; i++) {
+      worms[i].remove();
+    }
+    this.worms = {};
+  }
+
+  static _createBody(){
+    
+  }
 }
