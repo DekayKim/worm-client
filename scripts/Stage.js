@@ -27,8 +27,8 @@ export default class Stage {
 
     const tilingSprite = new PIXI.TilingSprite(
       gameResources.pattern_4.texture,
-      10000,
-      10000
+      Share.stageSize,
+      Share.stageSize
     );
     tilingSprite.zIndex = -999999999;
 
@@ -50,10 +50,13 @@ export default class Stage {
   }
 
   drawMinimap() {
-    const size = Math.min(Share.windowSize.width, Share.windowSize.height) / 5;
+    const min = Math.min(Share.windowSize.width, Share.windowSize.height);
+    const size = min / 5;
     const start = {
-      x: Share.windowSize.width - size,
-      y: Share.windowSize.height - size
+      // x: Share.windowSize.width - size,
+      // y: Share.windowSize.height - size
+      x: min * 0.02,
+      y: min * 0.02
     };
     this.minimap.clear();
     this.minimap.beginFill(0x000000, 0.5);
@@ -67,8 +70,8 @@ export default class Stage {
       if (worms[i]) {
         const head = worms[i].getHead();
         this.minimap.drawCircle(
-          start.x + (head.x / 10000) * size,
-          start.y + (head.y / 10000) * size,
+          start.x + (head.x / Share.stageSize) * size,
+          start.y + (head.y / Share.stageSize) * size,
           3
         );
       }
@@ -80,8 +83,8 @@ export default class Stage {
       this.minimap.lineStyle(3, 0xff0000, 0.5);
       const head = myWorm.getHead();
       this.minimap.drawCircle(
-        start.x + (head.x / 10000) * size,
-        start.y + (head.y / 10000) * size,
+        start.x + (head.x / Share.stageSize) * size,
+        start.y + (head.y / Share.stageSize) * size,
         5
       );
     }

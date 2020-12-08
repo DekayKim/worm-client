@@ -5,6 +5,7 @@ import SpatialHash from "./SpatialHash";
 export default class FoodManager {
   static init() {
     this.foods = {};
+    this.foodSprites = [];
   }
   static create(data) {
     this.foods[data.id] = new Food(data);
@@ -21,8 +22,11 @@ export default class FoodManager {
   static update(dt) {
     const keys = Object.keys(this.foods);
     for (let i = 0; i < keys.length; i++) {
-      if (!this.foods[keys[i]].sprite.visible) continue;
-      this.foods[keys[i]].update(dt);
+      if (!this.foods[keys[i]].sprite.visible) {
+        this.foods[keys[i]].outsideTargetUpdate();
+      } else {
+        this.foods[keys[i]].update(dt);
+      }
     }
   }
 
@@ -47,5 +51,36 @@ export default class FoodManager {
       foods[i].remove();
     }
     this.foods = {};
+  }
+
+  static _createSprite() {
+    const glow = new PIXI.Sprite(gameResources.glow.texture);
+    const sprite = new PIXI.Sprite(gameResources.oval.texture);
+    // sprite.position.set(x, y);
+    sprite.anchor.set(0.5, 0.5);
+    // sprite.width = sprite.height = radius * 2;
+    sprite.zIndex = -99999;
+    sprite.alpha = 0;
+    // sprite.tint = parseInt(color, 16);
+
+    glow.anchor.set(0.5, 0.5);
+    sprite.addChild(glow);
+    sprite._glow = glow;
+
+    // glow.addChild(sprite);
+    // glow._glow = glow;
+
+    this.foodSprites.push(sprite);
+    // this.glow = glow;
+  }
+
+  static borrowSprite() {
+    if (this.foodSprites.length === 0) this._createSprite();
+    const sprite = this.foodSprites.pop();
+    return sprite;
+  }
+
+  static returnSprite(sprite) {
+    this.foodSprites.push(sprite);
   }
 }

@@ -7,13 +7,26 @@ import Stage from "./scripts/Stage";
 import * as Stats from "stats.js";
 import DOMEvents from "./scripts/DOMEvents";
 import SpatialHash from "./scripts/SpatialHash";
+import MobileDetect from "mobile-detect";
+import "pixi-sound";
 
+const md = new MobileDetect(window.navigator.userAgent);
+Share.set("isMobile", md.mobile() ? true : false);
 window.PIXI = PIXI;
 
 const stats = new Stats();
 stats.showPanel(0);
+stats.dom.style.position = "absolute";
+stats.dom.style.bottom = "400px";
+stats.dom.style.left = 0;
+stats.dom.style.top = null;
 document.body.append(stats.dom);
+Share.set("stageSize", 30000);
 
+Share.set("windowSize", {
+  width: window.innerWidth,
+  height: window.innerHeight
+});
 var app = new PIXI["Application"]({
   autoResize: true,
   resolution: devicePixelRatio
@@ -21,8 +34,8 @@ var app = new PIXI["Application"]({
 var viewport = new Viewport({
   screenWidth: app.view.offsetWidth,
   screenHeight: app.view.offsetHeight,
-  worldWidth: 10000,
-  worldHeight: 10000
+  worldWidth: Share.stageSize,
+  worldHeight: Share.stageSize
 });
 console.log(viewport);
 
@@ -32,7 +45,12 @@ function resize() {
     height: window.innerHeight
   });
   app.renderer.resize(window.innerWidth, window.innerHeight);
-  viewport.resize(app.view.offsetWidth, app.view.offsetHeight, 10000, 1000);
+  viewport.resize(
+    app.view.offsetWidth,
+    app.view.offsetHeight,
+    Share.stageSize,
+    Share.stageSize
+  );
 }
 
 window.addEventListener("resize", resize);
@@ -49,6 +67,16 @@ loader.add("pattern_4", "./assets/pattern_4.jpg");
 loader.add("mask", "./assets/mask.png");
 loader.add("pixel", "./assets/pixel.png");
 loader.add("spoqa", "./assets/spoqa.fnt");
+loader.add("joystick_base", "./assets/analog_base.png");
+loader.add("joystick_button", "./assets/analog_button.png");
+loader.add("boost_button", "./assets/boost_button.png");
+
+loader.add("sound_bgm", "./sound/bgm.mp3");
+loader.add("sound_dash", "./sound/dash.mp3");
+loader.add("sound_eat_1", "./sound/eat1.mp3");
+loader.add("sound_eat_2", "./sound/eat2.mp3");
+loader.add("sound_eat_3", "./sound/eat3.mp3");
+loader.add("sound_gameover", "./sound/gameover.mp3");
 loader.load((loader, resources) => {
   window.gameResources = resources;
   document.body.appendChild(app.view); // create viewport
@@ -64,12 +92,16 @@ loader.load((loader, resources) => {
   Share.set("cull", cull);
   cull.cull(viewport.getVisibleBounds());
 
+  gameResources.sound_bgm.sound.play({
+    loop: true
+  });
   const stage = new Stage();
   Share.set("stage", stage);
   const game = new Game();
   resize(); // matter.render.canvas.style.background =
   //   "0% 0% / contain rgba(15, 15, 19,0.5)";
 
+  // app.ticker.maxFPS = 60;
   app.ticker.add(dt => {
     stats.begin();
 
@@ -174,6 +206,10 @@ Math.pointInRect = function(point, bound) {
     return true;
   }
   return false;
+};
+
+Math.lerp = function(a, b, r) {
+  return a + (b - a) * r;
 };
 
 window.getRandomColor = () => {

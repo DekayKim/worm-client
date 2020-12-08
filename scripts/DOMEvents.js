@@ -62,10 +62,11 @@ export default class DOMEvents {
     if (name !== null) container.childNodes[3].textContent = name;
     if (score !== null)
       container.childNodes[5].textContent = score.toLocaleString();
-    if (color !== null) container.style.color = color;
+    if (color !== null) container.childNodes[3].style.color = color;
   }
 
   static showGameOver() {
+    gameResources.sound_gameover.sound.play();
     this._hide(this.titleDiv);
     this._show(this.gameOverDiv);
     this.gameOverDiv.style.opacity = 0;

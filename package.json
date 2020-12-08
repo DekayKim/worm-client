@@ -8,8 +8,10 @@
   "dependencies": {
     "@pixi/filter-glow": "^3.1.1",
     "matter-js": "^0.14.2",
+    "mobile-detect": "^1.4.4",
     "msgpack5": "^4.2.1",
     "pixi-cull": "^1.0.0",
+    "pixi-sound": "^3.0.5",
     "pixi-viewport": "^4.17.1",
     "pixi.js": "^5.3.3",
     "schemapack": "^1.4.2",

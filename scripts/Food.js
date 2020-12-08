@@ -14,18 +14,15 @@ export default class Food {
     this.amount = amount;
     const radius = (15 + amount * 2) / 2;
     this.radius = radius;
-    const glow = new PIXI.Sprite(gameResources.glow.texture);
-    this.sprite = new PIXI.Sprite(gameResources.oval.texture);
+    this.sprite = FoodManager.borrowSprite();
     this.sprite.position.set(x, y);
-    this.sprite.anchor.set(0.5, 0.5);
     this.sprite.width = this.sprite.height = radius * 2;
-    this.sprite.zIndex = -99999;
     this.sprite.alpha = 0;
     this.sprite.tint = parseInt(color, 16);
 
-    glow.anchor.set(0.5, 0.5);
-    this.glow = glow;
-    this.sprite.addChild(glow);
+    // glow.anchor.set(0.5, 0.5);
+    this.glow = this.sprite._glow;
+    // this.sprite.addChild(glow);
 
     this._glowSwitch = 0;
     this._glowTime = Math.random() * 1;
@@ -42,6 +39,10 @@ export default class Food {
   eaten(worm) {
     /* 네트워크로 지우는 명령어 전달 */
 
+    if (worm.id === Share.myId) {
+      const soundIndex = Math.floor(Math.random() * 3) + 1;
+      gameResources[`sound_eat_${soundIndex}`].sound.play();
+    }
     if (worm.id === Share.myId || (Share.ai && Share.ai.includes(worm.id)))
       Socket.eat(worm, this);
     SpatialHash.delete(this);
@@ -53,8 +54,9 @@ export default class Food {
   remove() {
     Share.cull.remove(this.sprite);
     Share.viewport.removeChild(this.sprite);
-    this.sprite.destroy({ children: true });
-    this.sprite = null;
+    // this.sprite.destroy({ children: true });
+    // this.sprite = null;
+    FoodManager.returnSprite(this.sprite);
     FoodManager.remove(this);
   }
 
@@ -62,6 +64,13 @@ export default class Food {
     Share.cull.remove(this.sprite);
     Share.viewport.removeChild(this.sprite);
     this.sprite = null;
+  }
+
+  outsideTargetUpdate() {
+    if (this.target) {
+      this.target.eat(this.amount);
+      this.remove();
+    }
   }
 
   update(dt) {

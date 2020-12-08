@@ -5,6 +5,7 @@ import Share from "./share";
 import WormManager from "./WormManager";
 import FoodManager from "./FoodManager";
 import sp from "schemapack";
+import DOMEvents from "./DOMEvents";
 
 const { encode, decode } = msgpack();
 // const serverURL = "192.168.0.71:3636";
@@ -25,7 +26,9 @@ const socketList = [
   "delete_worm",
   "disconnect",
   "boost_start",
-  "boost_end"
+  "boost_end",
+  "tail_position",
+  // "rank"
 ];
 export default class Socket {
   static init() {
@@ -101,6 +104,14 @@ export default class Socket {
     this._emit("boost_ing", position);
   }
 
+  static tail_position(id) {
+    const worm = WormManager.get(id);
+    if (worm) {
+      const tail = worm.getTail();
+      if (tail) this._emit("tail_position", { id, x: tail.x, y: tail.y });
+    }
+  }
+
   static _on_connect() {
     if (this._connect === undefined) this._connect = true;
   }
@@ -143,6 +154,7 @@ export default class Socket {
   }
 
   static _on_ai(data) {
+    // console.log("ai", data);
     Share.set("ai", data);
   }
 
@@ -152,6 +164,7 @@ export default class Socket {
   }
 
   static _on_position_all(data) {
+    // return;
     for (let i = 0; i < data.length; i++) {
       const worm = WormManager.get(data[i].id);
       // if (data[i].id === Share.myId) {
@@ -289,22 +302,44 @@ export default class Socket {
     }
   }
 
+  static _on_tail_position(data) {
+    // console.log("tail_poistion", data);
+    const { id } = data;
+    this.tail_position(id);
+  }
+
+  static _on_rank(data) {
+    console.log(data);
+    for (let i = 0; i < 10; i++) {
+      const worm = WormManager.get(data[i]);
+      if (worm) {
+        DOMEvents._setRankerContainer(
+          i + 1,
+          worm.name,
+          worm.point,
+          "#" + worm.color.toString(16)
+        );
+      }
+    }
+  }
+
   /* ------------------------------------------ */
 
   static _emit(key, data, force = false) {
     const schema = this.schema.C2S[key];
     if (data) this.connection.emit(key, schema.encode(data));
     else this.connection.emit(key);
-    // this.connection.emit(key, data);
+    // if (data) this.connection.emit(key, data);
+    // else this.connection.emit(key);
   }
 
   static _on(key, fn) {
     this.connection.on(key, data => {
+      // fn(data);
       if (this.schema) {
         const schema = this.schema.S2C[key];
         const decodedData = data ? schema.decode(data) : data;
         fn(decodedData);
-        // fn(data);
       }
     });
   }

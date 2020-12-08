@@ -29,12 +29,13 @@ export default class Worm {
     this.id = this.options.id;
     this.name = this.options.name;
     this.isAI = this.options.isAI;
-    // this.glow = new GlowFilter();
+    this.glow = new GlowFilter();
     this.boost = false;
     this.boostEffect = false;
     this.color = parseInt(this.options.color, 16);
     this.zoom = 1;
     this.targetZoom = 1;
+    this._rotateCount = 0;
 
     if (this.isAI) {
       this._AITime = Date.now();
@@ -85,6 +86,7 @@ export default class Worm {
             this.speed = 0;
           } else if (event.keyCode === 32 && !this.boost) {
             this.boosterStart();
+            // gameResources.sound_dash.sound.play();
           }
 
           // if (keyName === "ArrowUp") this.keyState.ArrowUp = true;
@@ -101,37 +103,14 @@ export default class Worm {
         }
       });
     }
-
-    // document.addEventListener(
-    //   "keyup",
-    //   event => {
-    //     const keyName = event.key;
-
-    //     if (keyName === "ArrowUp") this.keyState.ArrowUp = false;
-    //     if (keyName === "ArrowDown") this.keyState.ArrowDown = false;
-    //     if (keyName === "ArrowLeft") this.keyState.ArrowLeft = false;
-    //     if (keyName === "ArrowRight") this.keyState.ArrowRight = false;
-    //   },
-    //   false
-    // );
   }
 
-  // _keyUpdate() {
-  //   const { ArrowUp, ArrowDown, ArrowLeft, ArrowRight } = this.keyState;
-  //   if (ArrowUp && ArrowRight) {
-  //     this._adjustAngle(45);
-  //   } else if (ArrowRight && ArrowDown) {
-  //     this._adjustAngle(135);
-  //   }
-  // }
-
-  _adjustAngle(targetAngle) {}
-
   _createSprite(x, y, isHead = false) {
-    const sprite = new PIXI.Sprite(gameResources.oval2.texture);
+    // const sprite = new PIXI.Sprite(gameResources.oval2.texture);
+    const sprite = WormManager.borrowBody();
     sprite.tint = this.color;
     sprite.position.set(x, y);
-    sprite.anchor.set(0.5, 0.5);
+    // sprite.anchor.set(0.5, 0.5);
     sprite.width = this.radius * 2;
     sprite.height = this.radius * 2;
     sprite.prev = { x, y };
@@ -198,6 +177,8 @@ export default class Worm {
     const tail = this.bodies.pop();
     Share.viewport.removeChild(tail);
     Share.cull.remove(tail);
+    tail.filters = [];
+    WormManager.returnBody(tail);
   }
 
   _addBody(sprite) {
@@ -244,9 +225,11 @@ export default class Worm {
   _dataUpdate(x, y) {
     const head = this.getHead();
     const distance = Math.getDistance(head._dataPosition, { x, y });
+    if (distance === 0) return;
     const radian = Math.getAngleWithTwoPoint(head._dataPosition, { x, y });
     // console.log(head._dataPosition, { x, y }, radian);
     head.rotation = radian + this._rotation;
+
     // console.log(Math.degrees(head.rotation));
     head._dataPosition = { x, y };
     this._spriteUpdate(head, head._dataPosition);
@@ -298,12 +281,22 @@ export default class Worm {
         this.paths[i - 1]
       );
 
+      let displayRadian = null;
+      if (this.paths[i - 1] && this.paths[i]) {
+        displayRadian = Math.getAngleWithTwoPoint(
+          this.paths[i],
+          this.paths[i - 1]
+        );
+      }
+
       this.bodies[i]._dataPosition = {
         x: this.bodies[i]._dataPosition.x + Math.cos(radian) * distance,
         y: this.bodies[i]._dataPosition.y + Math.sin(radian) * distance
       };
-      this.bodies[i].rotation = radian + Math.radians(180);
+      this.bodies[i].rotation =
+        (displayRadian ? displayRadian : radian) + Math.radians(180);
 
+      this._adjustDistanceWithFront(i, true);
       this._spriteUpdate(this.bodies[i], this.bodies[i]._dataPosition);
 
       // console.log(this.bodies[i]._dataPosition);
@@ -410,22 +403,22 @@ export default class Worm {
     const now = Date.now();
     // const _finalAngle = 180 * Math.atan2(_mouseAngle.x - )
     if (this.boostEffect) {
-      // if (this.glow.outerStrength < 3) {
-      //   this.glow.outerStrength += 0.1;
-      //   this.effectFlag = true;
-      // } else if (this.effectFlag) {
-      //   if (this.glow.outerStrength < 7) {
-      //     this.glow.outerStrength += 0.1;
-      //   } else {
-      //     this.effectFlag = false;
-      //   }
-      // } else {
-      //   if (this.glow.outerStrength > 3) {
-      //     this.glow.outerStrength -= 0.1;
-      //   } else {
-      //     this.effectFlag = true;
-      //   }
-      // }
+      if (this.glow.outerStrength < 3) {
+        this.glow.outerStrength += 0.1;
+        this.effectFlag = true;
+      } else if (this.effectFlag) {
+        if (this.glow.outerStrength < 7) {
+          this.glow.outerStrength += 0.1;
+        } else {
+          this.effectFlag = false;
+        }
+      } else {
+        if (this.glow.outerStrength > 3) {
+          this.glow.outerStrength -= 0.1;
+        } else {
+          this.effectFlag = true;
+        }
+      }
     }
 
     if (Share.ai && Share.ai.includes(this.id)) {
@@ -433,13 +426,15 @@ export default class Worm {
     }
     if (this.id !== Share.myId) return;
 
-    if (this.zoom < this.targetZoom) {
-      this.zoom += 0.0001;
-      if (this.zoom > this.targetZoom) this.zoom = this.targetZoom;
-    } else if (this.zoom > this.targetZoom) {
-      this.zoom -= 0.0001;
-      if (this.zoom < this.targetZoom) this.zoom = this.targetZoom;
-    }
+    // if (this.zoom < this.targetZoom) {
+    //   this.zoom += 0.0001;
+    //   if (this.zoom > this.targetZoom) this.zoom = this.targetZoom;
+    // } else if (this.zoom > this.targetZoom) {
+    //   this.zoom -= 0.0001;
+    //   if (this.zoom < this.targetZoom) this.zoom = this.targetZoom;
+    // }
+    this.zoom = Math.lerp(this.zoom, this.targetZoom, dt / 100);
+    // console.log(this.zoom);
     Share.viewport.setZoom(this.zoom);
 
     if (this.boost && now - this.lastDecreaseTime > 300) {
@@ -451,8 +446,11 @@ export default class Worm {
       });
     }
 
-    if (Share.rotateDirection === "right") this.angle += dt * 5;
-    else this.angle -= dt * 5;
+    if (Share.rotateCount < 5) {
+      if (Share.rotateDirection === "right") {
+        this.angle += dt * 5;
+      } else this.angle -= dt * 5;
+    }
 
     const head = this.getHead();
     const radian = Math.radians(this.angle - 90);
@@ -503,9 +501,7 @@ export default class Worm {
 
         if (hit) {
           this._hitCheck(worm);
-          // worm._boundColor = 0x00ff00;
         } else {
-          // worm._boundColor = 0xff0000;
         }
       }
     }
@@ -541,16 +537,26 @@ export default class Worm {
     for (let i = 0; i < this.paths.length; i++) {
       const body = this.bodies[i + 1];
       if (body === undefined) {
-        // this.paths.splice(i);
+        this.paths.splice(i + 1);
         break;
       }
 
       const radian = Math.getAngleWithTwoPoint(body.position, this.paths[i]);
+      let displayRadian = null;
+      if (this.paths[i] && this.paths[i + 1]) {
+        displayRadian = Math.getAngleWithTwoPoint(
+          this.paths[i + 1],
+          this.paths[i]
+        );
+      }
 
       // const rotation = (radian + this._rotation - body.rotation) / 60;
       body.x += Math.cos(radian) * distance;
       body.y += Math.sin(radian) * distance;
-      body.rotation = radian + Math.radians(180);
+      body.rotation =
+        (displayRadian ? displayRadian : radian) + Math.radians(180);
+
+      this._adjustDistanceWithFront(i + 1);
 
       // console.log(this.bodies[i]._dataPosition);
 
@@ -608,6 +614,30 @@ export default class Worm {
     //   Math.abs(bound.bottom - bound.top) + this.radius * 2
     // );
     // Share.graphics.endFill();
+  }
+
+  _adjustDistanceWithFront(index, isDataUpdate) {
+    const front = this.bodies[index - 1];
+    const back = this.bodies[index];
+    if (front && back) {
+      let backPosition = back;
+      if (isDataUpdate) {
+        backPosition = back._dataPosition;
+      }
+      const distance = Math.getDistance(front, backPosition);
+      const angle = Math.getAngleWithTwoPoint(front, backPosition);
+      const diff = this._followDistance + 1 - distance;
+      const diffPoint = Math.getPointWithAngleDistance(angle, diff);
+      backPosition.x += diffPoint.x;
+      backPosition.y += diffPoint.y;
+      // if (isDataUpdate) {
+      //   back._dataPosition.x += diffPoint.x;
+      //   back._dataPosition.y += diffPoint.y;
+      // } else {
+      //   back.x = back.x + diffPoint.x;
+      //   back.y = back.y + diffPoint.y;
+      // }
+    }
   }
 
   _hitCheck(worm) {
@@ -691,6 +721,7 @@ export default class Worm {
 
   boosterStart() {
     if (this.point <= 0) return;
+    gameResources.sound_dash.sound.play();
     this.boost = true;
     const now = Date.now();
     this.boosterStartTime = now;
@@ -702,9 +733,11 @@ export default class Worm {
 
   boosterEffectOn() {
     this.boostEffect = true;
-    // this.glow.outerStrength = 0;
-    for (let i = 0; i < this.bodies.length; i++) {
-      // this.bodies[i].filters = [this.glow];
+    if (this.glow) {
+      this.glow.outerStrength = 0;
+      for (let i = 0; i < this.bodies.length; i++) {
+        // this.bodies[i].filters = [this.glow];
+      }
     }
   }
 
@@ -749,17 +782,23 @@ export default class Worm {
         this._decrease();
       }
     }
-    this._adjustSize();
+    // this._adjustSize();
   }
 
   remove() {
     for (let i = 0; i < this.bodies.length; i++) {
       Share.cull.remove(this.bodies[i]);
       Share.viewport.removeChild(this.bodies[i]);
-      this.bodies[i].destroy({ children: true });
-      this.bodies[i] = null;
+      for (let i = 0; i < this.bodies[i].children.length; i++) {
+        this.bodies[i].children[i].destroy({ children: true });
+      }
+      this.bodies[i].filters = [];
+      WormManager.returnBody(this.bodies[i]);
+      // this.bodies[i].destroy({ children: true });
+      // this.bodies[i] = null;
     }
     this.bodies = [];
+    this.glow = null;
     Share.cull.remove(this.nickname);
     Share.viewport.removeChild(this.nickname);
     this.nickname.destroy();
@@ -779,7 +818,7 @@ export default class Worm {
 
   _adjustSize() {
     // point 10 = radius 20
-    this.radius = 20 + this.point * 0.01;
+    this.radius = 20 + this.point * 0.02;
     this._followDistance = this.radius / 2;
     for (let i = 0; i < this.bodies.length; i++) {
       this.bodies[i].width = this.bodies[i].height = this.radius * 2;

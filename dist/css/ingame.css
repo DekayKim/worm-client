@@ -3,7 +3,7 @@
   position: absolute;
   right: 1vmin;
   top: 1vmin;
-  width: 10vw;
+  width: 15vw;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -20,11 +20,14 @@
 }
 
 #ingame .ranker-container .name {
-  width: 50%;
+  width: 60%;
   text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow-x: hidden;
 }
 
 #ingame .ranker-container .score {
-  width: 30%;
+  width: 20%;
   text-align: right;
 }
