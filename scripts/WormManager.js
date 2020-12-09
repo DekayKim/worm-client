@@ -29,13 +29,17 @@ export default class WormManager {
       }
       this._rank(rank, this.worms[keys[i]]);
     }
-    for (let i = 0; i < rank.length; i++) {
-      DOMEvents._setRankerContainer(
-        i + 1,
-        rank[i].name,
-        rank[i].point,
-        "#" + rank[i].color.toString(16)
-      );
+    for (let i = 0; i < 10; i++) {
+      if (rank[i]) {
+        DOMEvents._setRankerContainer(
+          i + 1,
+          rank[i].name,
+          rank[i].point,
+          "#" + rank[i].color.toString(16)
+        );
+      } else {
+        DOMEvents._setRankerContainer(i + 1, "", 0);
+      }
     }
     // if (this.rank) {
     //   for (let i = 0; i < 10; i++) {

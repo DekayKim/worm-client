@@ -43,8 +43,7 @@ export default class Food {
       const soundIndex = Math.floor(Math.random() * 3) + 1;
       gameResources[`sound_eat_${soundIndex}`].sound.play();
     }
-    if (worm.id === Share.myId || (Share.ai && Share.ai.includes(worm.id)))
-      Socket.eat(worm, this);
+    if (worm.id === Share.myId || worm._control) Socket.eat(worm, this);
     SpatialHash.delete(this);
     this.eatenTime = Date.now();
     this.target = worm;

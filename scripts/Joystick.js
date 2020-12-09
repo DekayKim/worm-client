@@ -44,6 +44,7 @@ export default class Joystick {
   }
 
   _pointerMove(e) {
+    // console.log(e.data.identifier);
     if (this.joystickDown) {
       const lengthFromCenter = Math.getDistance(
         this.base.position,

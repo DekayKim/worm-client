@@ -9,6 +9,7 @@ import DOMEvents from "./scripts/DOMEvents";
 import SpatialHash from "./scripts/SpatialHash";
 import MobileDetect from "mobile-detect";
 import "pixi-sound";
+import TestWorm from "./scripts/TestWorm";
 
 const md = new MobileDetect(window.navigator.userAgent);
 Share.set("isMobile", md.mobile() ? true : false);
@@ -88,6 +89,7 @@ loader.load((loader, resources) => {
   SpatialHash.init();
   app.stage.addChild(viewport);
   viewport.moveCenter(5000, 5000);
+  // var cull = new Cull.Simple();
   var cull = new Cull.Simple();
   Share.set("cull", cull);
   cull.cull(viewport.getVisibleBounds());
@@ -98,6 +100,7 @@ loader.load((loader, resources) => {
   const stage = new Stage();
   Share.set("stage", stage);
   const game = new Game();
+  TestWorm.init();
   resize(); // matter.render.canvas.style.background =
   //   "0% 0% / contain rgba(15, 15, 19,0.5)";
 

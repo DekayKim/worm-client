@@ -36,6 +36,7 @@ export default class Worm {
     this.zoom = 1;
     this.targetZoom = 1;
     this._rotateCount = 0;
+    this._control = false;
 
     if (this.isAI) {
       this._AITime = Date.now();
@@ -269,12 +270,13 @@ export default class Worm {
       }
 
       // 최초에 데이터가 없을 때
-      if (this.bodies[i]._dataPosition === undefined) {
-        this.bodies[i]._dataPosition = {
-          x: this.bodies[i].x,
-          y: this.bodies[i].y
-        };
-      }
+      // if (this.bodies[i]._dataPosition === undefined) {
+      //   console.log("?");
+      //   this.bodies[i]._dataPosition = {
+      //     x: this.bodies[i].x,
+      //     y: this.bodies[i].y
+      //   };
+      // }
 
       const radian = Math.getAngleWithTwoPoint(
         this.bodies[i]._dataPosition,
@@ -289,10 +291,14 @@ export default class Worm {
         );
       }
 
-      this.bodies[i]._dataPosition = {
-        x: this.bodies[i]._dataPosition.x + Math.cos(radian) * distance,
-        y: this.bodies[i]._dataPosition.y + Math.sin(radian) * distance
-      };
+      // this.bodies[i]._dataPosition = {
+      //   x: this.bodies[i]._dataPosition.x + Math.cos(radian) * distance,
+      //   y: this.bodies[i]._dataPosition.y + Math.sin(radian) * distance
+      // };
+
+      this.bodies[i]._dataPosition.x += Math.cos(radian) * distance;
+      this.bodies[i]._dataPosition.y += Math.sin(radian) * distance;
+
       this.bodies[i].rotation =
         (displayRadian ? displayRadian : radian) + Math.radians(180);
 
@@ -306,15 +312,17 @@ export default class Worm {
     this.paths.splice(this.bodies.length);
     this.bound = bound;
 
-    if (Share.ai && Share.ai.includes(this.id)) {
+    // const ai = Share.ai;
+    const windowSize = Share.windowSize;
+    if (this._control) {
       const start = {
-        x: head.x - Share.windowSize.width / 5,
-        y: head.y - Share.windowSize.height / 5
+        x: head.x - windowSize.width / 5,
+        y: head.y - windowSize.height / 5
       };
 
       const end = {
-        x: head.x + Share.windowSize.width / 5,
-        y: head.y + Share.windowSize.height / 5
+        x: head.x + windowSize.width / 5,
+        y: head.y + windowSize.height / 5
       };
 
       const collisionFoods = [];
@@ -393,6 +401,7 @@ export default class Worm {
         }
 
         if (hit) {
+          console.log("e");
           this._hitCheck(worm);
         }
       }
@@ -421,7 +430,7 @@ export default class Worm {
       }
     }
 
-    if (Share.ai && Share.ai.includes(this.id)) {
+    if (this._control) {
       this.AIUpdate();
     }
     if (this.id !== Share.myId) return;
@@ -646,10 +655,14 @@ export default class Worm {
       const dx = head.x - worm.bodies[i].x;
       const dy = head.y - worm.bodies[i].y;
       const distance = Math.sqrt(dx * dx + dy * dy);
+      const looserBodies = this.bodies.map(body => ({
+        x: body.x,
+        y: body.y
+      }));
 
       if (distance < this.radius + worm.bodies[i]._class.radius) {
         if (this.state === "alive") {
-          Socket.conflict(this.id, this.bodies);
+          Socket.conflict(this.id, looserBodies);
           this.state = "die";
         }
       }

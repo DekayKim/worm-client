@@ -6,6 +6,7 @@ import WormManager from "./WormManager";
 import FoodManager from "./FoodManager";
 import sp from "schemapack";
 import DOMEvents from "./DOMEvents";
+import lzwCompress from "lzwcompress";
 
 const { encode, decode } = msgpack();
 // const serverURL = "192.168.0.71:3636";
@@ -27,31 +28,31 @@ const socketList = [
   "disconnect",
   "boost_start",
   "boost_end",
-  "tail_position",
+  "tail_position"
   // "rank"
 ];
 export default class Socket {
   static init() {
-    this.connection = io(`ws://${serverURL}`);
-    this.connection.on("schema", data => {
-      const { C2S, S2C } = data;
-      console.log(data);
-      this.schema = {
-        S2C: Object.fromEntries(
-          Object.entries(S2C).map(([name, data]) => [name, sp.build(data)])
-        ),
-        C2S: Object.fromEntries(
-          Object.entries(C2S).map(([name, data]) => [name, sp.build(data)])
-        )
-      };
-    });
+    const ws = new WebSocket(`ws://${serverURL}`);
+    this.ws = ws;
+    ws.binaryType = "arraybuffer";
+    ws.onmessage = this._on.bind(this);
 
-    socketList.map(key => {
-      if (this[`_on_${key}`]) this._on(key, this[`_on_${key}`].bind(this));
-      else console.warn(`${key} 에 대한 이벤트를 생성해주세요`);
-    });
+    // this.connection = io(`ws://${serverURL}`);
+    // this.connection.on("schema", data => {
+    //   const { C2S, S2C } = data;
+    //   console.log(data);
+    //   this.schema = {
+    //     S2C: Object.fromEntries(
+    //       Object.entries(S2C).map(([name, data]) => [name, sp.build(data)])
+    //     ),
+    //     C2S: Object.fromEntries(
+    //       Object.entries(C2S).map(([name, data]) => [name, sp.build(data)])
+    //     )
+    //   };
+    // });
 
-    // this.enter();
+    this.prevAI = [];
   }
 
   static enter(name) {
@@ -131,7 +132,7 @@ export default class Socket {
       const { name, id, x, y, point, isAI, color } = player[i];
       if (id === myId) {
         myWorm = player[i];
-        continue;
+        // continue;
       }
       WormManager.create({
         x,
@@ -155,7 +156,21 @@ export default class Socket {
 
   static _on_ai(data) {
     // console.log("ai", data);
-    Share.set("ai", data);
+    // Share.set("ai", data);
+    for (let i = 0; i < this.prevAI; i++) {
+      const id = data[i];
+      const worm = WormManager.get(id);
+      if (worm) worm._control = false;
+    }
+
+    this.prevAI = data;
+
+    for (let i = 0; i < data.length; i++) {
+      const id = data[i];
+      const worm = WormManager.get(id);
+      if (worm) worm._control = true;
+    }
+    console.log(this.prevAI);
   }
 
   static _on_position(data) {
@@ -246,34 +261,33 @@ export default class Socket {
   }
 
   static _on_bound_check(data) {
-    const myWorms = [WormManager.get(Share.myId)];
-    Share.ai.map(aiId => myWorms.push(WormManager.get(aiId)));
-    for (let j = 0; j < myWorms.length; j++) {
-      const myWorm = myWorms[j];
-      let inbound = false;
-      for (let i = 0; i < myWorm.bodies.length; i++) {
-        const body = myWorm.bodies[i];
-        const bodyBound = {
-          x: body.x - body.width / 2,
-          y: body.y - body.height / 2,
-          width: body.width,
-          height: body.height
-        };
-        if (Utility.AABB(data.bound, bodyBound)) {
-          inbound = true;
-          break;
-        }
-      }
-
-      if (inbound) {
-        this.inbound(
-          data.requestId,
-          myWorm.id,
-          myWorm.bodies.map(body => ({ x: body.x, y: body.y })),
-          myWorm.paths.slice(0, myWorm.bodies.length - 1)
-        );
-      }
-    }
+    // const myWorms = [WormManager.get(Share.myId)];
+    // Share.ai.map(aiId => myWorms.push(WormManager.get(aiId)));
+    // for (let j = 0; j < myWorms.length; j++) {
+    //   const myWorm = myWorms[j];
+    //   let inbound = false;
+    //   for (let i = 0; i < myWorm.bodies.length; i++) {
+    //     const body = myWorm.bodies[i];
+    //     const bodyBound = {
+    //       x: body.x - body.width / 2,
+    //       y: body.y - body.height / 2,
+    //       width: body.width,
+    //       height: body.height
+    //     };
+    //     if (Utility.AABB(data.bound, bodyBound)) {
+    //       inbound = true;
+    //       break;
+    //     }
+    //   }
+    //   if (inbound) {
+    //     this.inbound(
+    //       data.requestId,
+    //       myWorm.id,
+    //       myWorm.bodies.map(body => ({ x: body.x, y: body.y })),
+    //       myWorm.paths.slice(0, myWorm.bodies.length - 1)
+    //     );
+    //   }
+    // }
   }
 
   static _on_boost_start(data) {
@@ -325,22 +339,48 @@ export default class Socket {
 
   /* ------------------------------------------ */
 
-  static _emit(key, data, force = false) {
-    const schema = this.schema.C2S[key];
-    if (data) this.connection.emit(key, schema.encode(data));
-    else this.connection.emit(key);
+  static _emit(key, data = null, force = false) {
+    // const schema = this.schema.C2S[key];
+    // if (data) this.connection.emit(key, schema.encode(data));
+    // else this.connection.emit(key);
+
     // if (data) this.connection.emit(key, data);
     // else this.connection.emit(key);
+    const trans = [key, data];
+    try {
+      this.ws.send(encode(trans));
+    } catch (e) {
+      console.warn(e);
+      console.log(key, data, "!!");
+      debugger;
+    }
   }
 
-  static _on(key, fn) {
-    this.connection.on(key, data => {
-      // fn(data);
-      if (this.schema) {
-        const schema = this.schema.S2C[key];
-        const decodedData = data ? schema.decode(data) : data;
-        fn(decodedData);
+  static _on(message) {
+    if (message.constructor !== MessageEvent) {
+      console.warn("잘못된 형식의 message 입니다", message);
+      return;
+    }
+    const { data: trans } = message;
+    const [key, data] = decode(trans);
+    try {
+      if (this[`_on_${key}`]) {
+        this[`_on_${key}`](data);
+      } else {
+        console.warn(key, "event가 없습니다");
       }
-    });
+    } catch (e) {
+      console.log(e);
+      // debugger;
+    }
+
+    // this.connection.on(key, data => {
+    //   // fn(data);
+    //   if (this.schema) {
+    //     const schema = this.schema.S2C[key];
+    //     const decodedData = data ? schema.decode(data) : data;
+    //     fn(decodedData);
+    //   }
+    // });
   }
 }
