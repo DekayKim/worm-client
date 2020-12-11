@@ -27,15 +27,32 @@ export default class Stage {
 
     const tilingSprite = new PIXI.TilingSprite(
       gameResources.pattern_4.texture,
-      Share.stageSize,
-      Share.stageSize
+      Share.windowSize.width,
+      Share.windowSize.height
     );
+    tilingSprite.roundPixels = true;
+    this.tilingSprite = tilingSprite;
     tilingSprite.zIndex = -999999999;
+    // tilingSprite.cacheAsBitmap = true;
+    PIXI.settings.PRECISION_FRAGMENT = PIXI.PRECISION.HIGH;
 
-    Share.viewport.addChild(tilingSprite);
+    // Share.viewport.addChild(tilingSprite);
+    Share.app.stage.sortableChildren = true;
+    if (!Share.isMobile || true) Share.app.stage.addChild(tilingSprite);
     Share.viewport.addChild(graphics);
     Share.viewport.addChild(graphics1);
     Share.app.stage.addChild(minimap);
+  }
+
+  setTilePosition(x, y) {
+    this.tilingSprite.tilePosition.set(
+      -x % this.tilingSprite.texture.orig.width,
+      -y % this.tilingSprite.texture.orig.height
+    );
+  }
+
+  setTileScale(scale) {
+    this.tilingSprite.tileScale.set(scale);
   }
 
   startDrawMinimap() {

@@ -16,6 +16,7 @@ const socketList = [
   "enter",
   "ai",
   "position",
+  "position_angle",
   "position_all",
   "point",
   "new_worm",
@@ -56,7 +57,11 @@ export default class Socket {
   }
 
   static enter(name) {
-    this._emit("enter", { name, color: getRandomColor() }, true);
+    this._emit(
+      "enter",
+      { name, color: getRandomColor(), isMobile: Share.isMobile },
+      true
+    );
   }
 
   static boundCheck(requestId, position) {
@@ -76,8 +81,11 @@ export default class Socket {
   }
 
   static position(worm) {
-    const data = worm.getInformation();
-    this._emit("position", data);
+    this._emit("position", {
+      x: worm.bodies[0].x,
+      y: worm.bodies[0].y,
+      angle: worm.angle
+    });
   }
 
   static inbound(requestId, responseId, bodies, paths) {
@@ -111,6 +119,10 @@ export default class Socket {
       const tail = worm.getTail();
       if (tail) this._emit("tail_position", { id, x: tail.x, y: tail.y });
     }
+  }
+
+  static requestPositionAll() {
+    this._emit("position_all");
   }
 
   static _on_connect() {
@@ -150,13 +162,15 @@ export default class Socket {
     }
 
     Share.stage.startDrawMinimap();
+    this.requestPositionAll();
 
-    this.boundCheck(myId, { x: myWorm.x, y: myWorm.y });
+    // this.boundCheck(myId, { x: myWorm.x, y: myWorm.y });
   }
 
   static _on_ai(data) {
     // console.log("ai", data);
     // Share.set("ai", data);
+    document.getElementById("AI").innerText = "AI : " + data.length;
     for (let i = 0; i < this.prevAI; i++) {
       const id = data[i];
       const worm = WormManager.get(id);
@@ -170,7 +184,6 @@ export default class Socket {
       const worm = WormManager.get(id);
       if (worm) worm._control = true;
     }
-    console.log(this.prevAI);
   }
 
   static _on_position(data) {
@@ -178,21 +191,25 @@ export default class Socket {
     if (worm) worm.setPosition(data.x, data.y);
   }
 
+  static _on_angle_all(data) {
+    for (let i = 0; i < data.length; i++) {
+      const { id, angle, point } = data[i];
+      const worm = WormManager.get(id);
+
+      if (worm) {
+        if (id !== Share.myId) worm.setAngle(angle);
+        worm.setPoint(point);
+      }
+    }
+  }
+
   static _on_position_all(data) {
-    // return;
+    // console.log("position_all", data);
     for (let i = 0; i < data.length; i++) {
       const worm = WormManager.get(data[i].id);
-      // if (data[i].id === Share.myId) {
-      //   console.log(data[i]);
-      // }
-      try {
-        worm.setPoint(data[i].point);
-      } catch {
-        console.log("생성되기전", data[i].id);
-      }
       if (data[i].id === Share.myId) continue;
       if (worm) {
-        worm.setPosition(data[i].x, data[i].y);
+        worm.getHead().position.set(data[i].x, data[i].y);
       }
     }
   }
@@ -244,6 +261,10 @@ export default class Socket {
   static _on_new_food(data) {
     for (let i = 0; i < data.length; i++) {
       FoodManager.create(data[i]);
+      if (data[i].wormId) {
+        const worm = WormManager.get(data[i].wormId);
+        if (worm) worm.addPoint(-data[i].amount);
+      }
     }
   }
 
@@ -292,12 +313,18 @@ export default class Socket {
 
   static _on_boost_start(data) {
     const worm = WormManager.get(data.id);
-    if (worm) worm.boosterEffectOn();
+    if (worm) {
+      // worm.boosterEffectOn();
+      worm.boosterStart();
+    }
   }
 
   static _on_boost_end(data) {
     const worm = WormManager.get(data.id);
-    if (worm) worm.boosterEffectOff();
+    if (worm) {
+      // worm.boosterEffectOff();
+      worm.boosterEnd();
+    }
   }
 
   static _on_inbound(data) {

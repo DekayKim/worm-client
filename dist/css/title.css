@@ -43,14 +43,29 @@
 #title #button-container {
   display: flex;
   flex-direction: column;
-  width: 50%;
 }
 
 #title #button-container > * {
-  width: 100%;
-  height: 3rem;
+  width: 20rem;
+  height: 5rem;
+  color: white;
+  font-weight: bold;
+  font-size: 2rem;
+
+  background: none;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  border: none;
 }
 
 #title #button-container > * + * {
   margin-top: 1rem;
+}
+
+#title #start-button {
+  background-image: url("../assets/button_4.png");
+}
+
+#title #another-game-button {
+  background-image: url("../assets/button_3.png");
 }

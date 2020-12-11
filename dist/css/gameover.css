@@ -7,6 +7,9 @@
   background-color: rgba(0, 0, 0, 0.5);
 }
 
+#gameover #title-img {
+}
+
 #gameover-wrapper {
   padding: 0px 10%;
   width: 80%;
@@ -19,10 +22,35 @@
 }
 
 #gameover #button-container {
-  width: 50%;
+  width: 100%;
   display: flex;
   justify-content: space-evenly;
   padding: 1rem 0px;
+}
+
+#gameover #button-container > * {
+  width: 20rem;
+  height: 5rem;
+  color: white;
+  font-weight: bold;
+  font-size: 2rem;
+
+  background: none;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  border: none;
+}
+
+#gameover #restart {
+  background-image: url("../assets/button_4.png");
+}
+
+#gameover #other-game {
+  background-image: url("../assets/button_3.png");
+}
+
+.rank-list {
+  font-size: 1.2rem;
 }
 
 .rank-container {

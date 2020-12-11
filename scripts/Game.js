@@ -8,6 +8,7 @@ import WormManager from "./WormManager";
 import Share from "./share";
 import DOMEvents from "./DOMEvents";
 import Joystick from "./Joystick";
+import SpatialHash from "./SpatialHash";
 
 export default class Game {
   constructor() {
@@ -15,23 +16,26 @@ export default class Game {
     WormManager.init();
     FoodManager.init();
     Collision.init();
-    new Joystick();
+    if (Share.isMobile) new Joystick();
+    this.adjustPositionTime = Date.now();
+
+    this.prevVisibles = [];
   }
   update(dt) {
     const hero = WormManager.get(Share.myId);
     if (hero) {
       const heroHead = hero.getHead();
+      // this.cull(hero);
       if (!this.prevPosition) {
         this.prevPosition = {
           x: heroHead.x,
           y: heroHead.y
         };
       }
-      // console.log(heroHead.position);
 
       const movePosition = {
-        x: Math.lerp(this.prevPosition.x, heroHead.x, dt),
-        y: Math.lerp(this.prevPosition.y, heroHead.y, dt)
+        x: Math.lerp(this.prevPosition.x, heroHead.x, dt / 2),
+        y: Math.lerp(this.prevPosition.y, heroHead.y, dt / 2)
       };
 
       this.prevPosition = {
@@ -39,16 +43,13 @@ export default class Game {
         y: movePosition.y
       };
 
-      Share.viewport.moveCenter(movePosition.x, movePosition.y);
-
-      // Share.viewport.moveCenter(
-      //   heroHead.x + heroHead.width / 2,
-      //   heroHead.y + heroHead.height / 2
-      // );
+      Share.viewport.moveCenter(heroHead.x, heroHead.y);
+      Share.stage.setTilePosition(heroHead.x, heroHead.y);
     }
+
     Share.set("rotateDirection", "right");
     if (Share.isMobile) {
-      Share.set("rotateCount", 0);
+      if (this._prevAngle !== Share.joystickAngle) Share.set("rotateCount", 0);
       let mouseAngle = Share.joystickAngle;
       mouseAngle = mouseAngle > 0 ? 180 - mouseAngle : -180 - mouseAngle;
 
@@ -58,7 +59,6 @@ export default class Game {
         if (heroAngle > 180) heroAngle -= 360;
         var dif = heroAngle - mouseAngle;
 
-        // console.log(dif);
         if ((dif < 0 && dif > -180) || dif > 180) {
           if (Share.rotateDirection === "left")
             Share.set("rotateCount", Share.rotateCount + 1);
@@ -69,6 +69,7 @@ export default class Game {
           Share.set("rotateDirection", "left");
         }
       }
+      this._prevAngle = Share.joystickAngle;
     } else if (Share.app.renderer.plugins.interaction.eventData.data) {
       const mouse =
         Share.app.renderer.plugins.interaction.eventData.data.global;
@@ -101,7 +102,6 @@ export default class Game {
         if (heroAngle > 180) heroAngle -= 360;
         var dif = heroAngle - mouseAngle;
 
-        // console.log(dif);
         if ((dif < 0 && dif > -180) || dif > 180) {
           if (Share.rotateDirection === "left")
             Share.set("rotateCount", Share.rotateCount + 1);
@@ -116,6 +116,54 @@ export default class Game {
 
     WormManager.update(dt);
     FoodManager.update(dt);
+
+    if (hero) {
+      const now = Date.now();
+
+      if (now - this.adjustPositionTime > 1000) {
+        this.adjustPositionTime = now;
+        Socket.requestPositionAll();
+      }
+    }
   }
   destroy() {}
+
+  cull(hero) {
+    for (let i = 0; i < this.prevVisibles.length; i++) {
+      const worm = WormManager.get(this.prevVisibles[i]);
+      if (worm) worm.container.visible = false;
+    }
+    const head = hero.getHead();
+    const start = {
+      x: head.x - Share.windowSize.width / 1.5,
+      y: head.y - Share.windowSize.height / 1.5
+    };
+
+    const end = {
+      x: head.x + Share.windowSize.width / 1.5,
+      y: head.y + Share.windowSize.height / 1.5
+    };
+
+    const visibleWorms = [];
+    for (let x = start.x; x < end.x; x += Share.wormCellSize) {
+      for (let y = start.y; y < end.y; y += Share.wormCellSize) {
+        const list = SpatialHash.getWormList(x, y);
+        if (list !== undefined) {
+          const values = Array.from(list.values());
+          for (let key in values) {
+            visibleWorms.push(values[key]);
+            this.cullDetail(values[key]);
+          }
+        }
+        // const list = Object.values(SpatialHash.getList(x, y));
+        // for (let i = 0; i < list.length; i++) visibleWorms.push(list[i]);
+      }
+    }
+    this.prevVisibles = [...visibleWorms];
+  }
+
+  cullDetail(id) {
+    const worm = WormManager.get(id);
+    if (worm) worm.container.visible = true;
+  }
 }

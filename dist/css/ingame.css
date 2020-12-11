@@ -4,7 +4,7 @@
   right: 1vmin;
   top: 1vmin;
   width: 15vw;
-  display: flex;
+  display: none;
   flex-direction: column;
   align-items: center;
   color: white;

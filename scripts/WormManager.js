@@ -7,6 +7,7 @@ export default class WormManager {
   static init() {
     this.worms = {};
     this.bodies = [];
+    this._visibleWorms = [];
     this.lastUpdate = Date.now();
     this.rank = null;
   }
@@ -15,20 +16,21 @@ export default class WormManager {
     this.worms[data.id] = new Worm(data);
   }
 
+  static _addVisibleWorms(wormId) {
+    this._visibleWorms.push(wormId);
+  }
+
   static update(dt) {
     const rank = [];
     const keys = Object.keys(this.worms);
+    this._visibleWorms = [];
     for (let i = 0; i < keys.length; i++) {
       this.worms[keys[i]].update(dt);
-      if (keys[i] === Share.myId) {
-        // const now = Date.now();
-        // if (now - this.lastUpdate > (1 / 30) * 1000) {
-        //   this.lastUpdate = now;
-        Socket.position(this.worms[keys[i]]);
-        // }
-      }
       this._rank(rank, this.worms[keys[i]]);
+      if (keys[i] === Share.myId) Socket.position(this.worms[keys[i]]);
     }
+    this.collisionUpdateAll();
+
     for (let i = 0; i < 10; i++) {
       if (rank[i]) {
         DOMEvents._setRankerContainer(
@@ -41,30 +43,196 @@ export default class WormManager {
         DOMEvents._setRankerContainer(i + 1, "", 0);
       }
     }
-    // if (this.rank) {
-    //   for (let i = 0; i < 10; i++) {
-    //     if (this.rank[i] !== rank[i]) {
-    //       this.rank[i] = rank[i];
-    //       DOMEvents._setRankerContainer(
-    //         i + 1,
-    //         this.rank[i].name,
-    //         this.rank[i].point,
-    //         "#" + this.rank[i].color.toString(16)
-    //       );
-    //     }
-    //   }
-    // } else {
-    //   if (rank.length === 0) return;
-    //   this.rank = rank;
-    //   for (let i = 0; i < 10; i++) {
-    //     DOMEvents._setRankerContainer(
-    //       i + 1,
-    //       this.rank[i].name,
-    //       this.rank[i].point,
-    //       "#" + this.rank[i].color.toString(16)
-    //     );
-    //   }
-    // }
+  }
+
+  static collisionUpdateAll() {
+    const visit = {};
+
+    const wormsArr = Object.values(this.worms);
+    wormsArr.map(worm => (visit[worm.id] = {}));
+
+    Share.graphics1.clear();
+    Share.graphics1.beginFill(0xaa4f08, 0.5);
+    for (let i = 0; i < wormsArr.length; i++) {
+      const my = wormsArr[i];
+
+      if (!my._control) continue;
+      for (let j = 0; j < wormsArr.length; j++) {
+        if (i === j) continue;
+
+        const other = wormsArr[j];
+        if (visit[my.id][other.id] !== undefined) continue;
+        if (!my.bound || !other.bound) continue;
+
+        const hit = Math.AABB(
+          my._getCalculatedBound(),
+          other._getCalculatedBound()
+        );
+
+        if (hit) {
+          const result = this.dieCheck(my, other);
+          if (result === "my") break;
+        }
+
+        visit[my.id][other.id] = true;
+        visit[other.id][my.id] = true;
+      }
+    }
+  }
+
+  static collisionUpdateAll2() {
+    const visit = {};
+
+    const wormsArr = this._visibleWorms;
+    wormsArr.map(id => (visit[id] = {}));
+    for (let i = 0; i < wormsArr.length; i++) {
+      const my = this.worms[wormsArr[i]];
+      // if (!my._control) continue;
+      for (let j = 0; j < wormsArr.length; j++) {
+        if (i === j) continue;
+        const other = this.worms[wormsArr[j]];
+        if (visit[my.id][other.id] !== undefined) continue;
+        visit[my.id][other.id] = true;
+        visit[other.id][my.id] = true;
+
+        const circleHit = Math.OBB(
+          my.bodies[0].position,
+          my._followDistance * my.bodies.length,
+          other.bodies[0].position,
+          other._followDistance * other.bodies.length
+        );
+        if (circleHit) {
+          const hit = Math.AABB(
+            my.container.getBounds(),
+            other.container.getBounds()
+          );
+
+          if (hit) {
+            const result = this.dieCheck(my, other);
+            if (result === "my") break;
+          }
+        }
+      }
+    }
+  }
+
+  static collisionUpdate() {
+    if (this._visibleWorms.length < 2) return;
+    const rectCollision = [];
+    const my = this.worms[Share.myId];
+    if (!my) return;
+    for (let i = 0; i < this._visibleWorms.length; i++) {
+      if (this._visibleWorms[i] === Share.myId) continue;
+      const other = this.worms[this._visibleWorms[i]];
+
+      const hit = Math.AABB(
+        my.container.getBounds(),
+        other.container.getBounds()
+      );
+
+      if (hit) {
+        const head = my.getHead();
+        const otherHead = other.getHead();
+        for (let i = 1; i < other.bodies.length; i++) {
+          const myHeadHit = Math.OBB(
+            head.position,
+            my.radius,
+            other.bodies[i].position,
+            other.radius
+          );
+          if (myHeadHit) {
+            if (my.state === "alive") {
+              const looserBodies = my.bodies.map(body => ({
+                x: body.x,
+                y: body.y
+              }));
+              Socket.conflict(my.id, looserBodies);
+              my.state = "die";
+            }
+            return;
+          }
+        }
+        for (let i = 1; i < my.bodies.length; i++) {
+          const myHeadHit = Math.OBB(
+            otherHead.position,
+            other.radius,
+            my.bodies[i].position,
+            my.radius
+          );
+          if (myHeadHit) {
+            if (other.state === "alive") {
+              const looserBodies = other.bodies.map(body => ({
+                x: body.x,
+                y: body.y
+              }));
+              Socket.conflict(other.id, looserBodies);
+              other.state = "die";
+            }
+            return;
+          }
+        }
+      }
+    }
+  }
+
+  static dieCheck(my, other) {
+    const checkObjects = [];
+    checkObjects.push([my, other]);
+    checkObjects.push([other, my]);
+
+    for (let i = 0; i < checkObjects.length; i++) {
+      const [_my, _other] = checkObjects[i];
+      const head = _my.getHead();
+      for (let j = 1; j < _other.bodies.length; j++) {
+        const myHeadHit = Math.OBB(
+          head.position,
+          _my.radius,
+          _other.bodies[j].position,
+          _other.radius
+        );
+        if (myHeadHit) {
+          if (_my.state === "alive" && _other.state === "alive") {
+            const looserBodies = _my.bodies.map(body => ({
+              x: body.x,
+              y: body.y
+            }));
+            Socket.conflict(_my.id, looserBodies);
+            _my.state = "die";
+            return _my === my ? "my" : "other";
+          }
+        }
+      }
+    }
+    return false;
+  }
+
+  static dieCheck2(my, other) {
+    const checkObjects = [];
+    checkObjects.push([my, other]);
+    checkObjects.push([other, my]);
+
+    for (let i = 0; i < checkObjects.length; i++) {
+      const [_my, _other] = checkObjects[i];
+      const head = _my.getHead();
+      for (let j = 1; j < _other.bodies.length; j++) {
+        const myHeadHit = Math.OBB(
+          head.position,
+          _my.radius,
+          _other.bodies[j].position,
+          _other.radius
+        );
+        if (myHeadHit) {
+          if (_my.state === "alive") {
+            const looserBodies = _my.bodies.map(body => ({
+              x: body.x,
+              y: body.y
+            }));
+            Socket.conflict(_my.id, looserBodies);
+            _my.state = "die";
+          }
+        }
+      }
+    }
   }
 
   static remove(worm) {
@@ -126,5 +294,12 @@ export default class WormManager {
       rank[9] = worm;
     }
     rank.sort((a, b) => b.point - a.point);
+  }
+
+  static _getMyRank() {
+    const worms = Object.values(this.worms);
+    worms.sort((a, b) => b.point - a.point);
+    const rank = worms.findIndex(worm => worm.id === Share.myId);
+    return rank;
   }
 }

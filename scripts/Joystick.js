@@ -9,7 +9,7 @@ export default class Joystick {
 
     const base = new PIXI.Sprite(gameResources.joystick_base.texture);
     base.anchor.set(0.5, 0.5);
-    const margin = min * 0.1 + base.width / 2;
+    const margin = min * 0.15 + base.width / 2;
     base.x = margin;
     base.y = Share.windowSize.height - margin;
     base.interactive = true;
@@ -29,6 +29,7 @@ export default class Joystick {
 
     const boostButton = new PIXI.Sprite(gameResources.boost_button.texture);
     boostButton.anchor.set(0.5, 0.5);
+    boostButton.scale.set(1.4);
     boostButton.interactive = true;
     boostButton.position.set(Share.windowSize.width - margin, base.y);
     boostButton.on("pointerdown", this._boosterStart.bind(this));
@@ -39,13 +40,16 @@ export default class Joystick {
     Share.set("joystickAngle", 0);
   }
 
-  _pointerDown() {
+  _pointerDown(e) {
     this.joystickDown = true;
+    this.identifier = e.data.identifier;
+    document.getElementById("IDENTIFIER1").textContent = e.data.identifier;
   }
 
   _pointerMove(e) {
-    // console.log(e.data.identifier);
+    document.getElementById("IDENTIFIER2").textContent = e.data.identifier;
     if (this.joystickDown) {
+      if (e.data.identifier !== this.identifier) return;
       const lengthFromCenter = Math.getDistance(
         this.base.position,
         e.data.global

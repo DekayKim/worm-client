@@ -2,6 +2,7 @@ import Socket from "./Socket";
 import WormManager from "./WormManager";
 import FoodManager from "./FoodManager";
 import SpatialHash from "./SpatialHash";
+import Share from "./share";
 
 export default class DOMEvents {
   static init() {
@@ -10,7 +11,7 @@ export default class DOMEvents {
     this.gameOverDiv = this._get("gameover");
     this.rankerContainers = document.getElementsByClassName("ranker-container");
 
-    for (let i = 0; i < this.rankerContainers.length; i++) {
+    for (let i = 0; i < 10; i++) {
       const container = this.rankerContainers[i];
       container.style.opacity = 1 - i * 0.08;
     }
@@ -25,9 +26,8 @@ export default class DOMEvents {
     /* start button - click */
     this._get("start-button").addEventListener("click", () => {
       this._hide(this._get("title"));
-
-      Socket.enter(this._get("nickname").value);
       this.showIngame();
+      Socket.enter(this._get("nickname").value);
     });
 
     /* input edit */
@@ -38,18 +38,23 @@ export default class DOMEvents {
   }
 
   static gameOver() {
-    this.makeRankItem(5000, "hello", 1000, this._get("my-rank"));
-    this.makeRankItem(5000, "hello", 1000, this._get("my-best"));
-    this.makeRankItem(5000, "hello", 1000, this._get("all-rank"));
-
     this._get("restart").addEventListener("click", () => {
+      this._removeAllRankItems(this._get("my-rank"));
+      this._removeAllRankItems(this._get("my-best"));
+      this._removeAllRankItems(this._get("all-rank"));
       this._hide(this._get("gameover"));
+      this.showIngame();
       Socket.enter(this._get("nickname").value);
     });
   }
 
   static showIngame() {
+    this._get("my-score").textContent = 0;
     this._show(this.ingameDiv);
+  }
+
+  static hideInGame() {
+    this._hide(this.ingameDiv);
   }
 
   static _setRankerContainer(
@@ -67,6 +72,12 @@ export default class DOMEvents {
 
   static showGameOver() {
     gameResources.sound_gameover.sound.play();
+
+    const { rank, name, point } = Share.dieInfo;
+    this.makeRankItem(rank, name, point, this._get("my-rank"));
+    // this.makeRankItem(5000, "hello", 1000, this._get("my-best"));
+    // this.makeRankItem(5000, "hello", 1000, this._get("all-rank"));
+
     this._hide(this.titleDiv);
     this._show(this.gameOverDiv);
     this.gameOverDiv.style.opacity = 0;
@@ -93,6 +104,7 @@ export default class DOMEvents {
 
   static makeRankItem(value, nickname, score, parent) {
     const containerDOM = document.createElement("div");
+    containerDOM.classList.add("rank-list");
     containerDOM.style.width = "90%";
     containerDOM.style.padding = "0px 5%";
     containerDOM.style.height = "5rem";
@@ -102,7 +114,7 @@ export default class DOMEvents {
 
     const valueDOM = document.createElement("span");
     valueDOM.style.width = "20%";
-    valueDOM.innerText = value.toLocaleString() + " 위";
+    valueDOM.innerText = "# " + value.toLocaleString();
     containerDOM.appendChild(valueDOM);
 
     const nicknameDOM = document.createElement("span");
@@ -113,10 +125,16 @@ export default class DOMEvents {
     const scoreDOM = document.createElement("span");
     scoreDOM.style.width = "30%";
     scoreDOM.style.textAlign = "right";
-    scoreDOM.innerText = score.toLocaleString() + " 점";
+    scoreDOM.innerText = score.toLocaleString();
     containerDOM.appendChild(scoreDOM);
 
     parent.appendChild(containerDOM);
+  }
+
+  static _removeAllRankItems(container) {
+    while (container.hasChildNodes()) {
+      container.removeChild(container.firstChild);
+    }
   }
 
   static _get(id) {

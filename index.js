@@ -1,6 +1,6 @@
 import * as PIXI from "pixi.js";
 import { Viewport } from "pixi-viewport";
-import Cull from "pixi-cull";
+// import Cull from "pixi-cull";
 import Share from "./scripts/share";
 import Game from "./scripts/Game";
 import Stage from "./scripts/Stage";
@@ -10,18 +10,19 @@ import SpatialHash from "./scripts/SpatialHash";
 import MobileDetect from "mobile-detect";
 import "pixi-sound";
 import TestWorm from "./scripts/TestWorm";
+import { Cull } from "@pixi-essentials/cull";
 
 const md = new MobileDetect(window.navigator.userAgent);
 Share.set("isMobile", md.mobile() ? true : false);
 window.PIXI = PIXI;
 
-const stats = new Stats();
-stats.showPanel(0);
-stats.dom.style.position = "absolute";
-stats.dom.style.bottom = "400px";
-stats.dom.style.left = 0;
-stats.dom.style.top = null;
-document.body.append(stats.dom);
+// const stats = new Stats();
+// stats.showPanel(0);
+// stats.dom.style.position = "absolute";
+// stats.dom.style.bottom = "400px";
+// stats.dom.style.left = 0;
+// stats.dom.style.top = null;
+// document.body.append(stats.dom);
 Share.set("stageSize", 30000);
 
 Share.set("windowSize", {
@@ -30,15 +31,16 @@ Share.set("windowSize", {
 });
 var app = new PIXI["Application"]({
   autoResize: true,
-  resolution: devicePixelRatio
+  backgroundColor: 0x222222
+  // resolution : 4,
 });
+
 var viewport = new Viewport({
   screenWidth: app.view.offsetWidth,
   screenHeight: app.view.offsetHeight,
   worldWidth: Share.stageSize,
   worldHeight: Share.stageSize
 });
-console.log(viewport);
 
 function resize() {
   Share.set("windowSize", {
@@ -90,9 +92,11 @@ loader.load((loader, resources) => {
   app.stage.addChild(viewport);
   viewport.moveCenter(5000, 5000);
   // var cull = new Cull.Simple();
-  var cull = new Cull.Simple();
+  var cull = new Cull({
+    recursive: false
+  });
   Share.set("cull", cull);
-  cull.cull(viewport.getVisibleBounds());
+  // cull.cull(viewport.getVisibleBounds());
 
   gameResources.sound_bgm.sound.play({
     loop: true
@@ -100,21 +104,19 @@ loader.load((loader, resources) => {
   const stage = new Stage();
   Share.set("stage", stage);
   const game = new Game();
-  TestWorm.init();
-  resize(); // matter.render.canvas.style.background =
-  //   "0% 0% / contain rgba(15, 15, 19,0.5)";
+  resize();
 
-  // app.ticker.maxFPS = 60;
+  let lastCull = Date.now();
   app.ticker.add(dt => {
-    stats.begin();
-
-    if (viewport.dirty) {
-      cull.cull(viewport.getVisibleBounds());
-      viewport.dirty = false;
+    // stats.begin();
+    const now = Date.now();
+    if (now - lastCull > 1000 / 30) {
+      cull.cull(app.renderer.screen);
+      lastCull = now;
     }
 
     game.update(dt);
-    stats.end();
+    // stats.end();
   });
 });
 
@@ -222,4 +224,13 @@ window.getRandomColor = () => {
     color += letters[Math.floor(Math.random() * 16)];
   }
   return color;
+};
+
+Math.AABB = function(rect1, rect2) {
+  return (
+    rect1.x < rect2.x + rect2.width &&
+    rect1.x + rect1.width > rect2.x &&
+    rect1.y < rect2.y + rect2.height &&
+    rect1.y + rect1.height > rect2.y
+  );
 };

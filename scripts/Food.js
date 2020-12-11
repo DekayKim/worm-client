@@ -33,6 +33,7 @@ export default class Food {
 
     SpatialHash.add(this);
     Share.viewport.addChild(this.sprite);
+    this.sprite.visible = false;
     Share.cull.add(this.sprite);
   }
 
@@ -67,7 +68,6 @@ export default class Food {
 
   outsideTargetUpdate() {
     if (this.target) {
-      this.target.eat(this.amount);
       this.remove();
     }
   }
@@ -99,7 +99,7 @@ export default class Food {
       );
 
       if (progress === 1) {
-        this.target.eat(this.amount);
+        this.target.addPoint(this.amount);
         this.remove();
         return;
       }

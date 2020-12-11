@@ -25,7 +25,5 @@ export default class TestWorm {
 
   static update(x, y) {
     this.container.position.set(x, y);
-    Share.cull.updateObject(this.container);
-    console.log(this.container.getBounds());
   }
 }

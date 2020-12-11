@@ -5,6 +5,7 @@
     <link rel="stylesheet" href="css/title.css" />
     <link rel="stylesheet" href="css/ingame.css" />
     <link rel="stylesheet" href="css/gameover.css" />
+    <link rel="stylesheet" href="css/debug.css" />
     <link rel="preconnect" href="https://fonts.gstatic.com" />
     <link
       href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR&display=swap"
@@ -28,11 +29,16 @@
       <img src="./assets/title.png" id="title-img" />
       <div id="nickname-container">
         <h2>#Nickname</h2>
-        <input type="text" id="nickname" placeholder="enter your nickname" />
+        <input
+          type="text"
+          id="nickname"
+          placeholder="enter your nickname"
+          value="p1000"
+        />
       </div>
       <div id="button-container">
         <button class="button" id="start-button">Start</button>
-        <button class="button" id="another-game-button">Other game</button>
+        <button class="button" id="another-game-button">Other Games</button>
       </div>
     </div>
     <div id="ingame">
@@ -87,27 +93,38 @@
         <span class="name">worm.io</span>
         <span class="score">7777</span>
       </div>
+
+      <div class="ranker-container">
+        <span class="ranking"></span>
+        <span class="name">My Score</span>
+        <span class="score" id="my-score">0</span>
+      </div>
     </div>
     <div id="gameover">
       <div id="gameover-wrapper">
-        <h1>지렁이 게임.io</h1>
+        <img id="title-img" src="./assets/title.png" />
         <div class="rank-container">
-          <h2 class="rank-title">#본인순위</h2>
+          <h2 class="rank-title"># Rank</h2>
           <div id="my-rank" class="rank-list-container"></div>
         </div>
         <div id="button-container">
-          <button>다른 게임 하기</button>
-          <button id="restart">다시 시작</button>
+          <button id="other-game">Other Games</button>
+          <button id="restart">Restart</button>
         </div>
         <div class="rank-container">
-          <h2 class="rank-title">#본인최고순위</h2>
+          <h2 class="rank-title"># Best</h2>
           <div id="my-best" class="rank-list-container"></div>
         </div>
         <div class="rank-container">
-          <h2 class="rank-title">#랭크순위</h2>
+          <h2 class="rank-title"># World Record</h2>
           <div id="all-rank" class="rank-list-container"></div>
         </div>
       </div>
+    </div>
+    <div id="debug">
+      <span id="AI">AI</span>
+      <span id="IDENTIFIER1">IDENTIFIER1</span>
+      <span id="IDENTIFIER2">IDENTIFIER2</span>
     </div>
   </body>
 </html>

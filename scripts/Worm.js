@@ -22,7 +22,8 @@ export default class Worm {
     this.radius = 20;
     this._prevRadius = 20;
     this.bodies = [];
-    this.paths = [];
+    this.paths = [{ x: this.options.x, y: this.options.y }];
+    this.pathAngles = [0];
     this.type = "worm";
     this.state = "alive";
     this.point = this.options.point;
@@ -37,6 +38,14 @@ export default class Worm {
     this.targetZoom = 1;
     this._rotateCount = 0;
     this._control = false;
+    this._hashes = [];
+    this.container = new PIXI.Container();
+    this.container.sortableChildren = true;
+    this.container.visible = true;
+    // this.container.getBounds = this._getBounds.bind(this);
+
+    Share.viewport.addChild(this.container);
+    Share.cull.add(this.container);
 
     if (this.isAI) {
       this._AITime = Date.now();
@@ -48,6 +57,7 @@ export default class Worm {
     this._spriteIndex = 0;
 
     const head = this._createSprite(this.options.x, this.options.y, true);
+    // head.alpha = 0.2;
 
     const nickname = new PIXI.Text(userOptions.name, {
       fontFamily: "Noto Sans KR",
@@ -74,6 +84,7 @@ export default class Worm {
     };
 
     if (this.id === Share.myId) {
+      this._control = true;
       document.addEventListener(
         "keydown",
         event => {
@@ -104,18 +115,17 @@ export default class Worm {
         }
       });
     }
+
+    this._adjustSize();
   }
 
   _createSprite(x, y, isHead = false) {
-    // const sprite = new PIXI.Sprite(gameResources.oval2.texture);
     const sprite = WormManager.borrowBody();
     sprite.tint = this.color;
     sprite.position.set(x, y);
-    // sprite.anchor.set(0.5, 0.5);
     sprite.width = this.radius * 2;
     sprite.height = this.radius * 2;
     sprite.prev = { x, y };
-    // sprite.tint = 0x92c731;
     sprite.zIndex = this._spriteIndex--;
     sprite._dataPosition = { x, y };
     sprite._class = this;
@@ -176,19 +186,21 @@ export default class Worm {
 
   _decrease() {
     const tail = this.bodies.pop();
-    Share.viewport.removeChild(tail);
-    Share.cull.remove(tail);
+    // Share.viewport.removeChild(tail);
+    // Share.cull.remove(tail);
+    this.container.removeChild(tail);
     tail.filters = [];
     WormManager.returnBody(tail);
   }
 
   _addBody(sprite) {
     this.bodies.push(sprite);
-    Share.viewport.addChild(sprite);
-    Share.cull.add(sprite);
-  }
+    this.container.addChild(sprite);
+    SpatialHash.wormAdd(this);
 
-  _setting() {}
+    // Share.viewport.addChild(sprite);
+    // Share.cull.add(sprite);
+  }
 
   getHead() {
     return this.bodies[0];
@@ -198,163 +210,107 @@ export default class Worm {
     return this.bodies[this.bodies.length - 1];
   }
 
-  getInformation() {
+  _positionUpdate(dt, isVisible = true) {
+    SpatialHash.wormDelete(this);
     const head = this.getHead();
-    return {
-      id: this.id,
-      x: head.x,
-      y: head.y,
-      radius: this.radius
-    };
-  }
+    const radian = Math.radians(this.angle - 90);
+    let distance = (this.speed / 60) * dt;
 
-  setPosition(x, y) {
-    this._dataUpdate(x, y);
-    // Share.cull.updateObject(head);
-    // this._bodiesUpdate(distance);
-  }
+    head.x += Math.cos(radian) * distance;
+    head.y += Math.sin(radian) * distance;
+    SpatialHash.wormAdd(this);
 
-  _spriteUpdate(sprite, position) {
-    sprite.position.set(position.x, position.y);
-    Share.cull.updateObject(sprite);
-  }
-
-  /* 
-    Socket - Position 을 통해 받은 다른 지렁이의 위치 조정
-    특이사항 - 데이터만 수정
-  */
-  _dataUpdate(x, y) {
-    const head = this.getHead();
-    const distance = Math.getDistance(head._dataPosition, { x, y });
-    if (distance === 0) return;
-    const radian = Math.getAngleWithTwoPoint(head._dataPosition, { x, y });
-    // console.log(head._dataPosition, { x, y }, radian);
-    head.rotation = radian + this._rotation;
-
-    // console.log(Math.degrees(head.rotation));
-    head._dataPosition = { x, y };
-    this._spriteUpdate(head, head._dataPosition);
-    this.nickname.position.set(
-      head._dataPosition.x,
-      head._dataPosition.y - this.radius - this.nickname.height / 2
+    const distanceWithPrev = Math.sqrt(
+      (head.x - head.prev.x) ** 2 + (head.y - head.prev.y) ** 2
     );
-    Share.cull.updateObject(this.nickname);
 
-    // const distanceWithPrev = Math.sqrt(
-    //   (head.x - head.prev.x) ** 2 + (head.y - head.prev.y) ** 2
-    // );
+    let progress = distanceWithPrev / this._followDistance;
 
-    const distanceWithPrev = Math.getDistance(head._dataPosition, head.prev);
+    if (progress > 1) progress = 1;
+
+    const bound = {
+      left: head.x,
+      right: head.x,
+      top: head.y,
+      bottom: head.y
+    };
+
+    for (let i = 1; i < this.bodies.length; i++) {
+      const body = this.bodies[i];
+      const goal = this.paths[i - 1];
+      const prevGoal = this.paths[i];
+      if (prevGoal === undefined) continue;
+
+      // const goalDistance = {
+      //   x: (goal.x - prevGoal.x) * progress,
+      //   y: (goal.y - prevGoal.y) * progress
+      // };
+
+      if (this.paths[i - 1].distance === undefined) {
+        const goalDistance = {
+          x: goal.x - prevGoal.x,
+          y: goal.y - prevGoal.y
+        };
+
+        this.paths[i - 1].distance = goalDistance;
+      }
+
+      body.x = prevGoal.x + this.paths[i - 1].distance.x * progress;
+      body.y = prevGoal.y + this.paths[i - 1].distance.y * progress;
+      this._boundUpdate(bound, body.position);
+    }
+
+    this.paths.splice(this.bodies.length + 1);
+    this.bound = bound;
+
     if (distanceWithPrev > this._followDistance) {
-      const angle = Math.getAngleWithTwoPoint(head.prev, head._dataPosition);
+      const angle = Math.atan2(head.y - head.prev.y, head.x - head.prev.x);
       const path = {
         x: head.prev.x + Math.cos(angle) * this._followDistance,
         y: head.prev.y + Math.sin(angle) * this._followDistance
       };
 
-      head.prev.x = head._dataPosition.x;
-      head.prev.y = head._dataPosition.y;
+      head.prev.x = head.x;
+      head.prev.y = head.y;
+      this.pathAngles.unshift(Math.getAngleWithTwoPoint(path, this.paths[0]));
       this.paths.unshift(path);
     }
 
-    const bound = {
-      left: head._dataPosition.x,
-      right: head._dataPosition.x,
-      top: head._dataPosition.y,
-      bottom: head._dataPosition.y
+    this.nickname.position.set(
+      head.x,
+      head.y - this.radius - this.nickname.height / 2
+    );
+  }
+
+  _getCalculatedBound() {
+    return {
+      x: this.bound.left - this.radius,
+      y: this.bound.top - this.radius,
+      width: this.bound.right - this.bound.left + this.radius * 2,
+      height: this.bound.bottom - this.bound.top + this.radius * 2
     };
+  }
 
-    for (let i = 1; i < this.bodies.length; i++) {
-      if (!this.paths[i - 1]) {
-        break;
-      }
-
-      // 최초에 데이터가 없을 때
-      // if (this.bodies[i]._dataPosition === undefined) {
-      //   console.log("?");
-      //   this.bodies[i]._dataPosition = {
-      //     x: this.bodies[i].x,
-      //     y: this.bodies[i].y
-      //   };
-      // }
-
-      const radian = Math.getAngleWithTwoPoint(
-        this.bodies[i]._dataPosition,
-        this.paths[i - 1]
-      );
-
-      let displayRadian = null;
-      if (this.paths[i - 1] && this.paths[i]) {
-        displayRadian = Math.getAngleWithTwoPoint(
-          this.paths[i],
-          this.paths[i - 1]
-        );
-      }
-
-      // this.bodies[i]._dataPosition = {
-      //   x: this.bodies[i]._dataPosition.x + Math.cos(radian) * distance,
-      //   y: this.bodies[i]._dataPosition.y + Math.sin(radian) * distance
-      // };
-
-      this.bodies[i]._dataPosition.x += Math.cos(radian) * distance;
-      this.bodies[i]._dataPosition.y += Math.sin(radian) * distance;
-
-      this.bodies[i].rotation =
-        (displayRadian ? displayRadian : radian) + Math.radians(180);
-
-      this._adjustDistanceWithFront(i, true);
-      this._spriteUpdate(this.bodies[i], this.bodies[i]._dataPosition);
-
-      // console.log(this.bodies[i]._dataPosition);
-
-      this._boundUpdate(bound, this.bodies[i]._dataPosition);
-    }
-    this.paths.splice(this.bodies.length);
-    this.bound = bound;
-
-    // const ai = Share.ai;
-    const windowSize = Share.windowSize;
-    if (this._control) {
-      const start = {
-        x: head.x - windowSize.width / 5,
-        y: head.y - windowSize.height / 5
+  _getBounds() {
+    if (this.bound) {
+      return {
+        x: this.bound.left,
+        y: this.bound.top,
+        width: this.bound.right - this.bound.left,
+        height: this.bound.bottom - this.bound.top,
+        left: this.bound.left,
+        top: this.bound.top,
+        right: this.bound.right,
+        bottom: this.bound.bottom
       };
-
-      const end = {
-        x: head.x + windowSize.width / 5,
-        y: head.y + windowSize.height / 5
+    } else {
+      return {
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0
       };
-
-      const collisionFoods = [];
-      for (let x = start.x; x < end.x; x += Share.cellSize) {
-        for (let y = start.y; y < end.y; y += Share.cellSize) {
-          const list = SpatialHash.getList(x, y);
-          collisionFoods.push(...Object.values(list));
-        }
-      }
-
-      for (let i = 0; i < collisionFoods.length; i++) {
-        const collision = Math.OBB(
-          head.position,
-          this.radius * 2,
-          collisionFoods[i].sprite.position,
-          collisionFoods[i].radius
-        );
-        if (collision) collisionFoods[i].eaten(this);
-      }
     }
-
-    // Share.graphics.clear();
-    // Share.graphics.beginFill(this._boundColor);
-    // Share.graphics.alpha = 0.5;
-    // Share.graphics.drawRect(
-    //   bound.left - this.radius,
-    //   bound.top - this.radius,
-    //   Math.abs(bound.right - bound.left) + this.radius * 2,
-    //   Math.abs(bound.bottom - bound.top) + this.radius * 2
-    // );
-    // Share.graphics.endFill();
-    // console.log(this.bound);
   }
 
   _boundUpdate(bound, position) {
@@ -364,47 +320,56 @@ export default class Worm {
     if (position.y > bound.bottom) bound.bottom = position.y;
   }
 
-  AIUpdate(dt) {
+  _visibleUpdate(dt) {
+    WormManager._addVisibleWorms(this.id);
+    this._positionUpdate(dt);
+
     const head = this.getHead();
-    const second = this.bodies[1];
-    const angle = Math.getAngleWithTwoPoint(second.position, head.position);
-    const linePoint = {
-      x: Math.cos(angle) * (this.radius + 50),
-      y: Math.sin(angle) * (this.radius + 50)
+    const radian = Math.radians(this.angle - 90);
+    head.rotation = radian + this._rotation;
+    // this.nickname =
+
+    for (let i = 1; i < this.bodies.length; i++) {
+      if (!this.pathAngles[i]) break;
+      this.bodies[i].rotation = this.pathAngles[i];
+    }
+  }
+
+  _collisionUpdate(dt) {
+    const head = this.getHead();
+    const start = {
+      x: head.x - Share.windowSize.width / 10,
+      y: head.y - Share.windowSize.height / 10
     };
 
-    // Share.graphics1.clear();
-    // Share.graphics1.lineStyle(1, 0xffd900, 1);
-    // Share.graphics1.moveTo(head.x, head.y);
-    // Share.graphics1.lineTo(head.x + linePoint.x, head.y + linePoint.y);
+    const end = {
+      x: head.x + Share.windowSize.width / 10,
+      y: head.y + Share.windowSize.height / 10
+    };
 
-    const worms = WormManager.getAll();
-    for (let i = 0; i < worms.length; i++) {
-      const worm = worms[i];
-      if (worm.id === this.id) continue;
+    const collisionFoods = [];
 
-      if (worm.bound) {
-        let hit = false;
-        if (Math.pointInRect(head.position, worm.bound)) {
-          hit = true;
-        } else {
-          hit = Math.lineRect(
-            head.x,
-            head.y,
-            head.x + linePoint.x,
-            head.y + linePoint.y,
-            worm.bound.left - worm.radius,
-            worm.bound.top - worm.radius,
-            Math.abs(worm.bound.right - worm.bound.left) + worm.radius * 2,
-            Math.abs(worm.bound.bottom - worm.bound.top) + worm.radius * 2
-          );
+    let count = 0;
+    for (let x = start.x; x < end.x; x += Share.cellSize) {
+      for (let y = start.y; y < end.y; y += Share.cellSize) {
+        count += 1;
+        const list = SpatialHash.getList(x, y);
+        for (let key in list) {
+          collisionFoods.push(list[key]);
         }
-
-        if (hit) {
-          console.log("e");
-          this._hitCheck(worm);
-        }
+        // const list = Object.values(SpatialHash.getList(x, y));
+        // for (let i = 0; i < list.length; i++) collisionFoods.push(list[i]);
       }
+    }
+
+    for (let i = 0; i < collisionFoods.length; i++) {
+      const collision = Math.OBB(
+        head.position,
+        this.radius * 2,
+        collisionFoods[i].sprite.position,
+        collisionFoods[i].radius
+      );
+      if (collision) collisionFoods[i].eaten(this);
     }
   }
 
@@ -430,199 +395,48 @@ export default class Worm {
       }
     }
 
-    if (this._control) {
-      this.AIUpdate();
-    }
-    if (this.id !== Share.myId) return;
-
-    // if (this.zoom < this.targetZoom) {
-    //   this.zoom += 0.0001;
-    //   if (this.zoom > this.targetZoom) this.zoom = this.targetZoom;
-    // } else if (this.zoom > this.targetZoom) {
-    //   this.zoom -= 0.0001;
-    //   if (this.zoom < this.targetZoom) this.zoom = this.targetZoom;
-    // }
-    this.zoom = Math.lerp(this.zoom, this.targetZoom, dt / 100);
-    // console.log(this.zoom);
-    Share.viewport.setZoom(this.zoom);
-
-    if (this.boost && now - this.lastDecreaseTime > 300) {
-      this.lastDecreaseTime = now;
-      const tail = this.getTail();
-      Socket.boost_ing({
-        x: tail.x,
-        y: tail.y
-      });
-    }
-
-    if (Share.rotateCount < 5) {
-      if (Share.rotateDirection === "right") {
-        this.angle += dt * 5;
-      } else this.angle -= dt * 5;
-    }
-
-    const head = this.getHead();
-    const radian = Math.radians(this.angle - 90);
-    const distance = (this.speed / 60) * dt;
-
-    const prevHeadPosition = {
-      x: head.x,
-      y: head.y
-    };
-    /* Head Move */
-    // if (this.id === Share.myId) {
-    head.x += Math.cos(radian) * distance;
-    head.y += Math.sin(radian) * distance;
-    head.rotation = radian + this._rotation;
-    Share.cull.updateObject(head);
-
-    const lineAngle = Math.getAngleWithTwoPoint(
-      prevHeadPosition,
-      head.position
-    );
-    const linePoint = {
-      x: Math.cos(lineAngle) * (this.radius + 50),
-      y: Math.sin(lineAngle) * (this.radius + 50)
-    };
-
-    // Share.graphics1.clear();
-    // Share.graphics1.lineStyle(1, 0xffd900, 1);
-    // Share.graphics1.moveTo(head.x, head.y);
-    // Share.graphics1.lineTo(head.x + linePoint.x, head.y + linePoint.y);
+    // if (this._control) {
+    //   this.AIUpdate();
     // }
 
-    const worms = WormManager.getAll();
-    for (let i = 0; i < worms.length; i++) {
-      const worm = worms[i];
-      if (worm.id === Share.myId) continue;
+    // if (this.id !== Share.myId) return;
+    if (this.id === Share.myId) {
+      // Share.stage.setTilePosition(this.bodies[0].x, this.bodies[0].y);
 
-      if (worm.bound) {
-        const hit = Math.lineRect(
-          head.x,
-          head.y,
-          head.x + linePoint.x,
-          head.y + linePoint.y,
-          worm.bound.left - worm.radius,
-          worm.bound.top - worm.radius,
-          Math.abs(worm.bound.right - worm.bound.left) + worm.radius * 2,
-          Math.abs(worm.bound.bottom - worm.bound.top) + worm.radius * 2
-        );
+      this.zoom = Math.lerp(this.zoom, this.targetZoom, dt / 100);
+      // Share.viewport.setZoom(this.zoom);
+      // Share.stage.setTileScale(this.targetZoom);
 
-        if (hit) {
-          this._hitCheck(worm);
-        } else {
-        }
+      if (this.boost && now - this.lastDecreaseTime > 300) {
+        this.lastDecreaseTime = now;
+        const tail = this.getTail();
+        Socket.boost_ing({
+          x: tail.x,
+          y: tail.y
+        });
+      }
+
+      if (Share.rotateCount < 5) {
+        if (Share.rotateDirection === "right") {
+          this.angle += dt * 5;
+        } else this.angle -= dt * 5;
       }
     }
+
+    if (this.container.visible) this._visibleUpdate(dt);
+    else {
+      this._positionUpdate(dt, false);
+      // if (this._control) this._collisionUpdate(dt);
+    }
+    if (this._control) {
+      this._collisionUpdate(dt);
+    }
+    return;
 
     this.nickname.position.set(
       head.x,
       head.y - this.radius - this.nickname.height / 2
     );
-
-    /* Bodies Move */
-    const distanceWithPrev = Math.sqrt(
-      (head.x - head.prev.x) ** 2 + (head.y - head.prev.y) ** 2
-    );
-    if (distanceWithPrev > this._followDistance) {
-      const angle = Math.atan2(head.y - head.prev.y, head.x - head.prev.x);
-      const path = {
-        x: head.prev.x + Math.cos(angle) * this._followDistance,
-        y: head.prev.y + Math.sin(angle) * this._followDistance
-      };
-
-      head.prev.x = head.x;
-      head.prev.y = head.y;
-      this.paths.unshift(path);
-    }
-
-    const bound = {
-      left: head.x,
-      right: head.x,
-      top: head.y,
-      bottom: head.y
-    };
-
-    for (let i = 0; i < this.paths.length; i++) {
-      const body = this.bodies[i + 1];
-      if (body === undefined) {
-        this.paths.splice(i + 1);
-        break;
-      }
-
-      const radian = Math.getAngleWithTwoPoint(body.position, this.paths[i]);
-      let displayRadian = null;
-      if (this.paths[i] && this.paths[i + 1]) {
-        displayRadian = Math.getAngleWithTwoPoint(
-          this.paths[i + 1],
-          this.paths[i]
-        );
-      }
-
-      // const rotation = (radian + this._rotation - body.rotation) / 60;
-      body.x += Math.cos(radian) * distance;
-      body.y += Math.sin(radian) * distance;
-      body.rotation =
-        (displayRadian ? displayRadian : radian) + Math.radians(180);
-
-      this._adjustDistanceWithFront(i + 1);
-
-      // console.log(this.bodies[i]._dataPosition);
-
-      this._boundUpdate(bound, body.position);
-      this.bound = bound;
-
-      // body.rotation = radian + this._rotation;
-      Share.cull.updateObject(body);
-    }
-
-    // this.radius = 20 + this.point * 0.05;
-    if (this._prevRadius !== this.radius) {
-      this._prevRadius = this.radius;
-      this._adjustSize();
-    }
-
-    Share.cull.updateObject(this.nickname);
-
-    const start = {
-      x: head.x - Share.windowSize.width / 5,
-      y: head.y - Share.windowSize.height / 5
-    };
-
-    const end = {
-      x: head.x + Share.windowSize.width / 5,
-      y: head.y + Share.windowSize.height / 5
-    };
-
-    const collisionFoods = [];
-    for (let x = start.x; x < end.x; x += Share.cellSize) {
-      for (let y = start.y; y < end.y; y += Share.cellSize) {
-        const list = SpatialHash.getList(x, y);
-        collisionFoods.push(...Object.values(list));
-      }
-    }
-
-    for (let i = 0; i < collisionFoods.length; i++) {
-      const collision = Math.OBB(
-        head.position,
-        this.radius * 2,
-        collisionFoods[i].sprite.position,
-        collisionFoods[i].radius
-      );
-      if (collision) collisionFoods[i].eaten(this);
-    }
-    // console.log(collisionFoods);
-
-    // Share.graphics.clear();
-    // Share.graphics.beginFill(this._boundColor);
-    // Share.graphics.alpha = 0.5;
-    // Share.graphics.drawRect(
-    //   bound.left - this.radius,
-    //   bound.top - this.radius,
-    //   Math.abs(bound.right - bound.left) + this.radius * 2,
-    //   Math.abs(bound.bottom - bound.top) + this.radius * 2
-    // );
-    // Share.graphics.endFill();
   }
 
   _adjustDistanceWithFront(index, isDataUpdate) {
@@ -639,13 +453,6 @@ export default class Worm {
       const diffPoint = Math.getPointWithAngleDistance(angle, diff);
       backPosition.x += diffPoint.x;
       backPosition.y += diffPoint.y;
-      // if (isDataUpdate) {
-      //   back._dataPosition.x += diffPoint.x;
-      //   back._dataPosition.y += diffPoint.y;
-      // } else {
-      //   back.x = back.x + diffPoint.x;
-      //   back.y = back.y + diffPoint.y;
-      // }
     }
   }
 
@@ -669,85 +476,27 @@ export default class Worm {
     }
   }
 
-  _headUpdate(dt) {
-    const head = this.getHead();
-    const radian = Math.radians(this.angle - 90);
-    const distance = (this.speed / 60) * dt;
-
-    /* Head Move */
-    head.x += Math.cos(radian) * distance;
-    head.y += Math.sin(radian) * distance;
-    head.rotation = radian + this._rotation;
-    Share.cull.updateObject(head);
-  }
-
-  _bodiesUpdate(distance) {
-    const head = this.getHead();
-
-    /* Bodies Move */
-    const distanceWithPrev = Math.sqrt(
-      (head.x - head.prev.x) ** 2 + (head.y - head.prev.y) ** 2
-    );
-    if (distanceWithPrev > this._followDistance) {
-      const angle = Math.atan2(head.y - head.prev.y, head.x - head.prev.x);
-      const path = {
-        x: head.prev.x + Math.cos(angle) * this._followDistance,
-        y: head.prev.y + Math.sin(angle) * this._followDistance
-      };
-
-      head.prev.x = head.x;
-      head.prev.y = head.y;
-      this.paths.unshift(path);
-    }
-
-    for (let i = 0; i < this.paths.length; i++) {
-      const body = this.bodies[i + 1];
-      const prev = this.bodies[i];
-      if (body === undefined) {
-        // this.paths.splice(i);
-        break;
-      }
-
-      const distanceToPath = Math.sqrt(
-        (this.paths[i].x - body.x) ** 2 + (this.paths[i].y - body.y) ** 2
-      );
-      const radian = Math.getAngleWithTwoPoint(body.position, this.paths[i]);
-      const moveAmount = Math.min(distanceToPath, distance);
-      // const rotation = (radian + this._rotation - body.rotation) / 60;
-      body.x += Math.cos(radian) * moveAmount;
-      body.y += Math.sin(radian) * moveAmount;
-
-      // const test = Math.sqrt((body.x - prev.x) ** 2 + (body.y - prev.y) ** 2);
-      // if (test >= this._followDistance * 1.2) {
-      //   body.x = this.paths[i].x;
-      //   body.y = this.paths[i].y;
-      // }
-
-      // body.rotation = radian + this._rotation;
-      Share.cull.updateObject(body);
-    }
-  }
-
   setSpeed(speed) {
     this.speed = speed;
   }
 
   boosterStart() {
     if (this.point <= 0) return;
-    gameResources.sound_dash.sound.play();
+    if (this.id === Share.myId) gameResources.sound_dash.sound.play();
     this.boost = true;
     const now = Date.now();
     this.boosterStartTime = now;
     this.lastDecreaseTime = now;
     this.speed = BOOST_SPEED;
     this.boosterEffectOn();
-    Socket.boost_start();
+    if (this.id === Share.myId) Socket.boost_start();
   }
 
   boosterEffectOn() {
     this.boostEffect = true;
     if (this.glow) {
       this.glow.outerStrength = 0;
+      this.container.filters = [this.glow];
       for (let i = 0; i < this.bodies.length; i++) {
         // this.bodies[i].filters = [this.glow];
       }
@@ -756,9 +505,11 @@ export default class Worm {
 
   boosterEffectOff() {
     this.boostEffect = false;
-    for (let i = 0; i < this.bodies.length; i++) {
-      this.bodies[i].filters = [];
-    }
+    this.container.filters = [];
+
+    // for (let i = 0; i < this.bodies.length; i++) {
+    //   this.bodies[i].filters = [];
+    // }
   }
 
   boosterEnd() {
@@ -766,20 +517,31 @@ export default class Worm {
     const useBoosterTime = Date.now() - this.boosterStartTime;
     this.speed = DEFAULT_SPEED;
     this.boosterEffectOff();
-    Socket.boost_end();
+    if (this.id === Share.myId) Socket.boost_end();
   }
 
-  eat(amount) {
-    // const prevCount = Math.floor(this.point / 5);
-    // this.point += amount;
-    // const addBodyCount = Math.floor(this.point / 5) - prevCount;
-    // for (let i = 0; i < addBodyCount; i++) {
-    //   this._increase();
-    // }
-    // this._adjustSize();
+  addPoint(point) {
+    return;
+    const prevCount = Math.floor(this.point / 5);
+    this.point += point;
+    if (this.point <= 0 && this.boost) {
+      this.boosterEnd();
+    }
+    const addBodyCount = Math.floor(this.point / 5) - prevCount;
+    if (addBodyCount > 0) {
+      for (let i = 0; i < addBodyCount; i++) {
+        this._increase();
+      }
+    } else if (addBodyCount < 0) {
+      for (let i = 0; i < Math.abs(addBodyCount); i++) {
+        this._decrease();
+      }
+    }
+    this._adjustSize();
   }
 
   setPoint(point) {
+    if (this.point === point) return;
     if (point <= 0 && this.boost) {
       this.boosterEnd();
     }
@@ -795,20 +557,46 @@ export default class Worm {
         this._decrease();
       }
     }
-    // this._adjustSize();
+    this._adjustSize();
+
+    if (this.id === Share.myId) {
+      this.rankerContainers = document.getElementsByClassName(
+        "ranker-container"
+      )[10];
+
+      this.rankerContainers.children[2].textContent = point.toLocaleString();
+    }
   }
 
+  // ! legacy remove !
+  // remove() {
+  //   for (let i = 0; i < this.bodies.length; i++) {
+  //     Share.cull.remove(this.bodies[i]);
+  //     Share.viewport.removeChild(this.bodies[i]);
+  //     for (let i = 0; i < this.bodies[i].children.length; i++) {
+  //       this.bodies[i].children[i].destroy({ children: true });
+  //     }
+  //     this.bodies[i].filters = [];
+  //     WormManager.returnBody(this.bodies[i]);
+  //     // this.bodies[i].destroy({ children: true });
+  //     // this.bodies[i] = null;
+  //   }
+  //   this.bodies = [];
+  //   this.glow = null;
+  //   Share.cull.remove(this.nickname);
+  //   Share.viewport.removeChild(this.nickname);
+  //   this.nickname.destroy();
+  //   this.nickname = null;
+
+  //   WormManager.remove(this);
+  // }
+
   remove() {
+    Share.cull.remove(this.container);
+    Share.viewport.removeChild(this.container);
     for (let i = 0; i < this.bodies.length; i++) {
-      Share.cull.remove(this.bodies[i]);
-      Share.viewport.removeChild(this.bodies[i]);
-      for (let i = 0; i < this.bodies[i].children.length; i++) {
-        this.bodies[i].children[i].destroy({ children: true });
-      }
-      this.bodies[i].filters = [];
+      if (i === 0) this.bodies[i].removeChildren();
       WormManager.returnBody(this.bodies[i]);
-      // this.bodies[i].destroy({ children: true });
-      // this.bodies[i] = null;
     }
     this.bodies = [];
     this.glow = null;
@@ -821,10 +609,20 @@ export default class Worm {
   }
 
   die() {
+    if (this.id === Share.myId) {
+      const rank = WormManager._getMyRank();
+      Share.set("dieInfo", {
+        rank,
+        name: this.name,
+        point: this.point
+      });
+    }
+
     this.remove();
 
     if (this.id === Share.myId) {
       Share.stage.stopDrawMinimap();
+      DOMEvents.hideInGame();
       DOMEvents.showGameOver();
     }
   }
@@ -840,39 +638,11 @@ export default class Worm {
     this.targetZoom = 1 - this.point / 5000;
   }
 
-  _adjustPosition() {
-    for (let i = 1; i < this.bodies.length; i++) {
-      const prev = this.bodies[i - 1];
-      const current = this.bodies[i];
-      // if()
-    }
-  }
-
-  _updateMatterRadius(sprite) {}
-
-  _matterPosition() {
-    const head = this.getHead();
-    return {
-      x: head.x + head.width / 2,
-      y: head.y + head.height / 2
-    };
-  }
-
   setPaths(paths) {
     this.paths = paths;
   }
 
-  setBodyPosition(index, position) {
-    if (this.bodies[index] === undefined || this.bodies[index] === null) {
-      this._increase();
-    }
-    this.bodies[index].position.set(position.x, position.y);
-    Share.cull.updateObject(this.bodies[index]);
+  setAngle(angle) {
+    this.angle = angle;
   }
-
-  // setPoint(point) {
-  //   this.point = point;
-  //   this.radius = 20 + this.point * 0.05;
-  //   this._adjustSize();
-  // }
 }

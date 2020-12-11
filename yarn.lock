@@ -2,6 +2,11 @@
 # yarn lockfile v1
 
 
+"@pixi-essentials/cull@^1.0.9":
+  version "1.0.9"
+  resolved "https://registry.yarnpkg.com/@pixi-essentials/cull/-/cull-1.0.9.tgz#471325cc3155015d3b054fdd027ffd396447b99f"
+  integrity sha512-wNvwsFUD6ErcRJOtlcXFoq3GSVZyVnwM4wju8qWQWAs2QtRI4VGFS10M3sLsE3TRjUvvcmaHFM2LHZ4OVR/yEA==
+
 "@pixi/accessibility@5.3.3":
   version "5.3.3"
   resolved "https://registry.yarnpkg.com/@pixi/accessibility/-/accessibility-5.3.3.tgz#b7bab17e3cf5eb5f511471df943155a4eadf0c6e"
