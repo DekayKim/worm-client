@@ -91,11 +91,11 @@ export default class Worm {
           const keyName = event.key;
 
           if (keyName === "w") {
-            this.angle += 10;
+            // this.angle += 10;
           } else if (keyName === "s") {
-            this.angle -= 10;
+            // this.angle -= 10;
           } else if (keyName === "q") {
-            this.speed = 0;
+            // this.speed = 0;
           } else if (event.keyCode === 32 && !this.boost) {
             this.boosterStart();
             // gameResources.sound_dash.sound.play();
@@ -630,7 +630,7 @@ export default class Worm {
   _adjustSize() {
     // point 10 = radius 20
     this.radius = 20 + this.point * 0.02;
-    this._followDistance = this.radius / 2;
+    this._followDistance = this.radius / 1.5;
     for (let i = 0; i < this.bodies.length; i++) {
       this.bodies[i].width = this.bodies[i].height = this.radius * 2;
     }
