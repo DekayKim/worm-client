@@ -42,6 +42,10 @@ export default class Stage {
     Share.viewport.addChild(graphics);
     Share.viewport.addChild(graphics1);
     Share.app.stage.addChild(minimap);
+
+    // graphics.beginFill(0x000000, 0.5);
+    graphics.lineStyle(5, 0xffffff, 1);
+    graphics.drawRect(0, 0, Share.stageSize, Share.stageSize);
   }
 
   setTilePosition(x, y) {

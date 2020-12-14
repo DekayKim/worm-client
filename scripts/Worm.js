@@ -332,6 +332,7 @@ export default class Worm {
     for (let i = 1; i < this.bodies.length; i++) {
       if (!this.pathAngles[i]) break;
       this.bodies[i].rotation = this.pathAngles[i];
+      // this._adjustDistanceWithFront(i);
     }
   }
 
