@@ -11,6 +11,7 @@ import MobileDetect from "mobile-detect";
 import "pixi-sound";
 import TestWorm from "./scripts/TestWorm";
 import { Cull } from "@pixi-essentials/cull";
+import Socket from "./scripts/Socket";
 
 const md = new MobileDetect(window.navigator.userAgent);
 Share.set("isMobile", md.mobile() ? true : false);
@@ -80,7 +81,9 @@ loader.add("sound_eat_1", "./sound/eat1.mp3");
 loader.add("sound_eat_2", "./sound/eat2.mp3");
 loader.add("sound_eat_3", "./sound/eat3.mp3");
 loader.add("sound_gameover", "./sound/gameover.mp3");
-loader.load((loader, resources) => {
+loader.load(process);
+
+async function process(loader, resources) {
   window.gameResources = resources;
   document.body.appendChild(app.view); // create viewport
 
@@ -91,24 +94,18 @@ loader.load((loader, resources) => {
   SpatialHash.init();
   app.stage.addChild(viewport);
   viewport.moveCenter(5000, 5000);
-  // var cull = new Cull.Simple();
-  var cull = new Cull({
-    recursive: false
-  });
+  var cull = new Cull({ recursive: false });
   Share.set("cull", cull);
-  // cull.cull(viewport.getVisibleBounds());
 
-  gameResources.sound_bgm.sound.play({
-    loop: true
-  });
+  gameResources.sound_bgm.sound.play({ loop: true });
   const stage = new Stage();
   Share.set("stage", stage);
+  await Socket.getScheme();
   const game = new Game();
   resize();
 
   let lastCull = Date.now();
   app.ticker.add(dt => {
-    // stats.begin();
     const now = Date.now();
     if (now - lastCull > 1000 / 30) {
       cull.cull(app.renderer.screen);
@@ -116,9 +113,8 @@ loader.load((loader, resources) => {
     }
 
     game.update(dt);
-    // stats.end();
   });
-});
+}
 
 Math.radians = function(degrees) {
   return (degrees * Math.PI) / 180;

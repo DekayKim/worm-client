@@ -136,16 +136,10 @@ export default class Socket {
   }
 
   static _on_enter(data) {
-    console.log("enter", data);
     const { myId, player, food } = data;
     Share.set("myId", myId);
-    let myWorm;
     for (let i = 0; i < player.length; i++) {
       const { name, id, x, y, point, isAI, color } = player[i];
-      if (id === myId) {
-        myWorm = player[i];
-        // continue;
-      }
       WormManager.create({
         x,
         y,
@@ -215,7 +209,7 @@ export default class Socket {
   }
 
   static _on_point(data) {
-    // console.log(data);
+    console.log(data, "on_point");
     // const worm = WormManager.get(data.id);
     // if (worm) {
     //   const eatAmount = data.point - worm.point;
@@ -261,10 +255,6 @@ export default class Socket {
   static _on_new_food(data) {
     for (let i = 0; i < data.length; i++) {
       FoodManager.create(data[i]);
-      if (data[i].wormId) {
-        const worm = WormManager.get(data[i].wormId);
-        if (worm) worm.addPoint(-data[i].amount);
-      }
     }
   }
 
@@ -373,14 +363,29 @@ export default class Socket {
 
     // if (data) this.connection.emit(key, data);
     // else this.connection.emit(key);
-    const trans = [key, data];
-    try {
-      this.ws.send(encode(trans));
-    } catch (e) {
-      console.warn(e);
-      console.log(key, data, "!!");
-      debugger;
+
+    // const trans = [key, data];
+    // try {
+    //   this.ws.send(encode(trans));
+    // } catch (e) {
+    //   console.warn(e);
+    //   console.log(key, data, "!!");
+    //   debugger;
+    // }
+
+    const { C2S, events } = this.schema;
+    const schema = C2S[key];
+    const keyBinary = new Uint8Array([events.indexOf(key)]);
+    let convertedData;
+    if (data) {
+      const dataBinary = schema.encode(data);
+      convertedData = new Uint8Array(keyBinary.length + dataBinary.length);
+      convertedData.set(keyBinary, 0);
+      convertedData.set(dataBinary, keyBinary.length);
+    } else {
+      convertedData = keyBinary;
     }
+    this.ws.send(convertedData.buffer);
   }
 
   static _on(message) {
@@ -388,18 +393,30 @@ export default class Socket {
       console.warn("잘못된 형식의 message 입니다", message);
       return;
     }
-    const { data: trans } = message;
-    const [key, data] = decode(trans);
-    try {
-      if (this[`_on_${key}`]) {
-        this[`_on_${key}`](data);
-      } else {
-        console.warn(key, "event가 없습니다");
-      }
-    } catch (e) {
-      console.log(e);
-      // debugger;
+
+    const { S2C, events } = this.schema;
+    const keyInt = new Uint8Array(message.data, 0, 1);
+    const key = events[keyInt];
+    if (this[`_on_${key}`]) {
+      const dataBinary = new Uint8Array(message.data, 1);
+      const schema = S2C[key];
+      const data = schema.decode(dataBinary);
+      this[`_on_${key}`](data);
+    } else {
+      console.warn(key, "event가 없습니다");
     }
+
+    // const { data: trans } = message;
+    // const [key, data] = decode(trans);
+    // try {
+    //   if (this[`_on_${key}`]) {
+    //     this[`_on_${key}`](data);
+    //   } else {
+    //     console.warn(key, "event가 없습니다");
+    //   }
+    // } catch (e) {
+    //   console.log(e);
+    // }
 
     // this.connection.on(key, data => {
     //   // fn(data);
@@ -409,5 +426,22 @@ export default class Socket {
     //     fn(decodedData);
     //   }
     // });
+  }
+
+  static async getScheme() {
+    const response = await fetch(`http://${serverURL}/scheme`, {
+      headers: { "Content-Type": "application/json" }
+    });
+    const schema = await response.json();
+    const { S2C, C2S, events } = schema;
+    this.schema = {
+      events,
+      S2C: Object.fromEntries(
+        Object.entries(S2C).map(([name, data]) => [name, sp.build(data)])
+      ),
+      C2S: Object.fromEntries(
+        Object.entries(C2S).map(([name, data]) => [name, sp.build(data)])
+      )
+    };
   }
 }
