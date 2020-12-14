@@ -1,16 +1,12 @@
-import { io } from "socket.io-client";
-import * as msgpack from "msgpack5";
-import Utility from "./Utility";
 import Share from "./share";
 import WormManager from "./WormManager";
 import FoodManager from "./FoodManager";
 import sp from "schemapack";
 import DOMEvents from "./DOMEvents";
-import lzwCompress from "lzwcompress";
 
-const { encode, decode } = msgpack();
 // const serverURL = "192.168.0.71:3636";
-const serverURL = "118.128.86.111:3636";
+// const serverURL = "118.128.86.111:3636";
+const serverURL = "ec2-13-124-27-164.ap-northeast-2.compute.amazonaws.com:3636";
 
 const socketList = [
   "enter",
