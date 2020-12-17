@@ -6,8 +6,8 @@ import DOMEvents from "./DOMEvents";
 
 // const serverURL = "192.168.0.71:3636";
 // const serverURL = "118.128.86.111:3636";
-const serverURL = "ec2-13-124-27-164.ap-northeast-2.compute.amazonaws.com:3636";
-// const serverURL = "worm.among.live:3636";
+// const serverURL = "ec2-13-124-27-164.ap-northeast-2.compute.amazonaws.com:3636";
+const serverURL = "worm.among.live:3636";
 const socketList = [
   "enter",
   "ai",
@@ -30,7 +30,7 @@ const socketList = [
 ];
 export default class Socket {
   static init() {
-    const ws = new WebSocket(`ws://${serverURL}`);
+    const ws = new WebSocket(`wss://${serverURL}`);
     this.ws = ws;
     ws.binaryType = "arraybuffer";
     ws.onmessage = this._on.bind(this);
@@ -397,7 +397,7 @@ export default class Socket {
   }
 
   static async getScheme() {
-    const response = await fetch(`http://${serverURL}/scheme`, {
+    const response = await fetch(`https://${serverURL}/scheme`, {
       headers: { "Content-Type": "application/json" }
     });
     const schema = await response.json();
