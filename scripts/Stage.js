@@ -31,6 +31,7 @@ export default class Stage {
       Share.windowSize.height
     );
     tilingSprite.roundPixels = true;
+    tilingSprite.tint = 0xafafaf;
     this.tilingSprite = tilingSprite;
     tilingSprite.zIndex = -999999999;
     // tilingSprite.cacheAsBitmap = true;
@@ -46,6 +47,11 @@ export default class Stage {
     // graphics.beginFill(0x000000, 0.5);
     graphics.lineStyle(5, 0xffffff, 1);
     graphics.drawRect(0, 0, Share.stageSize, Share.stageSize);
+  }
+
+  resize(width, height) {
+    this.tilingSprite.width = width;
+    this.tilingSprite.height = height;
   }
 
   setTilePosition(x, y) {

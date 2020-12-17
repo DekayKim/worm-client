@@ -31,3 +31,7 @@
   width: 20%;
   text-align: right;
 }
+
+#ingame #my-info {
+  margin-top: 10px;
+}

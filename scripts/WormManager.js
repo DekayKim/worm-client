@@ -9,7 +9,7 @@ export default class WormManager {
     this.bodies = [];
     this._visibleWorms = [];
     this.lastUpdate = Date.now();
-    this.rank = null;
+    this.rank = [];
   }
 
   static create(data) {
@@ -21,23 +21,31 @@ export default class WormManager {
   }
 
   static update(dt) {
-    const rank = [];
+    // this.rank = [];
+    const tempRank = [];
     const keys = Object.keys(this.worms);
     this._visibleWorms = [];
     for (let i = 0; i < keys.length; i++) {
+      tempRank.push(this.worms[keys[i]]);
       this.worms[keys[i]].update(dt);
-      this._rank(rank, this.worms[keys[i]]);
-      if (keys[i] === Share.myId) Socket.position(this.worms[keys[i]]);
+      // this._rank(rank, this.worms[keys[i]]);
+      if (keys[i] === Share.myId) {
+        // Socket.position(this.worms[keys[i]]);
+        Socket.angle(this.worms[keys[i]]);
+      }
     }
+
+    tempRank.sort((a, b) => b.point - a.point);
+    this.rank = tempRank;
     this.collisionUpdateAll();
 
     for (let i = 0; i < 10; i++) {
-      if (rank[i]) {
+      if (this.rank[i]) {
         DOMEvents._setRankerContainer(
           i + 1,
-          rank[i].name,
-          rank[i].point,
-          "#" + rank[i].color.toString(16)
+          this.rank[i].name,
+          this.rank[i].point,
+          "#" + this.rank[i].color.toString(16)
         );
       } else {
         DOMEvents._setRankerContainer(i + 1, "", 0);
@@ -288,18 +296,12 @@ export default class WormManager {
   }
 
   static _rank(rank, worm) {
-    if (rank.length < 10) {
-      rank.push(worm);
-    } else if (rank[9].point < worm.point) {
-      rank[9] = worm;
-    }
+    rank.push(worm);
     rank.sort((a, b) => b.point - a.point);
   }
 
   static _getMyRank() {
-    const worms = Object.values(this.worms);
-    worms.sort((a, b) => b.point - a.point);
-    const rank = worms.findIndex(worm => worm.id === Share.myId);
-    return rank;
+    const rank = this.rank.findIndex(worm => worm.id === Share.myId);
+    return rank + 1 || 100;
   }
 }

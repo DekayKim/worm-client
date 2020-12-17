@@ -22,19 +22,27 @@ export default class Food {
 
     // glow.anchor.set(0.5, 0.5);
     this.glow = this.sprite._glow;
+    this.glow.position.set(x, y);
+    this.glow.width = this.glow.height = radius * 2;
+    this.glow.tint = parseInt(color, 16);
     // this.sprite.addChild(glow);
+    this.glow.alpha = 0;
 
     this._glowSwitch = 0;
     this._glowTime = Math.random() * 1;
-    this._glowAmount = 0.2;
+    this._glowAmount = 0.05;
     // this.glow.tint = 0xff0000;
 
     this._updateTime = Math.random() * 1000;
 
     SpatialHash.add(this);
+
+    Share.viewport.addChild(this.sprite._glow);
     Share.viewport.addChild(this.sprite);
+
     this.sprite.visible = false;
     Share.cull.add(this.sprite);
+    Share.cull.add(this.sprite._glow);
   }
 
   eaten(worm) {
@@ -54,6 +62,9 @@ export default class Food {
   remove() {
     Share.cull.remove(this.sprite);
     Share.viewport.removeChild(this.sprite);
+
+    Share.cull.remove(this.sprite._glow);
+    Share.viewport.removeChild(this.sprite._glow);
     // this.sprite.destroy({ children: true });
     // this.sprite = null;
     FoodManager.returnSprite(this.sprite);
@@ -76,7 +87,10 @@ export default class Food {
     this._updateTime += dt / 60;
     this._glowTime += dt / 60;
 
-    if (this.sprite.alpha < 1) this.sprite.alpha += 0.01;
+    if (this.sprite.alpha < 1) {
+      this.sprite.alpha += 0.01;
+      this.glow.alpha = this.sprite.alpha / 2;
+    }
 
     if (this.target) {
       const elapsedTime = Date.now() - this.eatenTime;
@@ -97,6 +111,7 @@ export default class Food {
         this.from.x + gap.x * progress,
         this.from.y + gap.y * progress
       );
+      this.glow.position.set(this.sprite.x, this.sprite.y);
 
       if (progress === 1) {
         this.target.addPoint(this.amount);
@@ -109,13 +124,14 @@ export default class Food {
 
       this.sprite.x = this.origin.x + (move * 2 - Math.PI * 2) * direction;
       this.sprite.y = this.origin.y + Math.sin(move) * 3;
+      this.glow.position.set(this.sprite.x, this.sprite.y);
     }
 
     let scale = this._glowSwitch
       ? this._glowTime * this._glowAmount
       : this._glowAmount - this._glowTime * this._glowAmount;
 
-    this.glow.scale.set(0.3 + scale);
+    this.glow.scale.set(0.1 + scale);
 
     if (this._glowTime > 1) {
       this._glowTime = 0;

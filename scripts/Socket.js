@@ -7,7 +7,7 @@ import DOMEvents from "./DOMEvents";
 // const serverURL = "192.168.0.71:3636";
 // const serverURL = "118.128.86.111:3636";
 const serverURL = "ec2-13-124-27-164.ap-northeast-2.compute.amazonaws.com:3636";
-
+// const serverURL = "worm.among.live:3636";
 const socketList = [
   "enter",
   "ai",
@@ -82,6 +82,10 @@ export default class Socket {
       y: worm.bodies[0].y,
       angle: worm.angle
     });
+  }
+
+  static angle(worm) {
+    this._emit("angle", worm.angle);
   }
 
   static inbound(requestId, responseId, bodies, paths) {
@@ -183,22 +187,27 @@ export default class Socket {
 
   static _on_angle_all(data) {
     for (let i = 0; i < data.length; i++) {
-      const { id, angle, point } = data[i];
+      const { id, angle, point, x, y } = data[i];
       const worm = WormManager.get(id);
 
       if (worm) {
-        if (id !== Share.myId) worm.setAngle(angle);
+        worm.getHead().position.set(x, y);
+        if (id !== Share.myId) {
+          worm.setAngle(angle);
+        }
         worm.setPoint(point);
       }
     }
   }
 
   static _on_position_all(data) {
+    return;
     // console.log("position_all", data);
     for (let i = 0; i < data.length; i++) {
       const worm = WormManager.get(data[i].id);
       if (data[i].id === Share.myId) continue;
       if (worm) {
+        console.log(data[i].x, data[i].y, "ff");
         worm.getHead().position.set(data[i].x, data[i].y);
       }
     }
@@ -353,22 +362,6 @@ export default class Socket {
   /* ------------------------------------------ */
 
   static _emit(key, data = null, force = false) {
-    // const schema = this.schema.C2S[key];
-    // if (data) this.connection.emit(key, schema.encode(data));
-    // else this.connection.emit(key);
-
-    // if (data) this.connection.emit(key, data);
-    // else this.connection.emit(key);
-
-    // const trans = [key, data];
-    // try {
-    //   this.ws.send(encode(trans));
-    // } catch (e) {
-    //   console.warn(e);
-    //   console.log(key, data, "!!");
-    //   debugger;
-    // }
-
     const { C2S, events } = this.schema;
     const schema = C2S[key];
     const keyBinary = new Uint8Array([events.indexOf(key)]);
@@ -401,27 +394,6 @@ export default class Socket {
     } else {
       console.warn(key, "event가 없습니다");
     }
-
-    // const { data: trans } = message;
-    // const [key, data] = decode(trans);
-    // try {
-    //   if (this[`_on_${key}`]) {
-    //     this[`_on_${key}`](data);
-    //   } else {
-    //     console.warn(key, "event가 없습니다");
-    //   }
-    // } catch (e) {
-    //   console.log(e);
-    // }
-
-    // this.connection.on(key, data => {
-    //   // fn(data);
-    //   if (this.schema) {
-    //     const schema = this.schema.S2C[key];
-    //     const decodedData = data ? schema.decode(data) : data;
-    //     fn(decodedData);
-    //   }
-    // });
   }
 
   static async getScheme() {

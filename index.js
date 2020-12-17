@@ -14,6 +14,7 @@ import { Cull } from "@pixi-essentials/cull";
 import Socket from "./scripts/Socket";
 
 const md = new MobileDetect(window.navigator.userAgent);
+let stage = null;
 Share.set("isMobile", md.mobile() ? true : false);
 window.PIXI = PIXI;
 
@@ -55,6 +56,8 @@ function resize() {
     Share.stageSize,
     Share.stageSize
   );
+
+  if (stage) stage.resize(window.innerWidth, window.innerHeight);
 }
 
 window.addEventListener("resize", resize);
@@ -98,7 +101,7 @@ async function process(loader, resources) {
   Share.set("cull", cull);
 
   gameResources.sound_bgm.sound.play({ loop: true });
-  const stage = new Stage();
+  stage = new Stage();
   Share.set("stage", stage);
   await Socket.getScheme();
   const game = new Game();

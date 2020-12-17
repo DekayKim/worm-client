@@ -85,7 +85,7 @@ export default class DOMEvents {
     this._get("restart").disabled = true;
     this.transitionId = setInterval(() => {
       const elapsedTime = Date.now() - this.transitionStartTime;
-      let progress = elapsedTime / 1000;
+      let progress = elapsedTime / 3000;
       if (progress > 1) progress = 1;
 
       this.gameOverDiv.style.opacity = progress;

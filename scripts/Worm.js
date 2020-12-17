@@ -11,8 +11,8 @@ const defaultOptions = {
   color: 0xffffff
 };
 
-const DEFAULT_SPEED = 200;
-const BOOST_SPEED = 400;
+const DEFAULT_SPEED = 300;
+const BOOST_SPEED = 600;
 
 export default class Worm {
   constructor(userOptions) {
@@ -129,6 +129,7 @@ export default class Worm {
     sprite.zIndex = this._spriteIndex--;
     sprite._dataPosition = { x, y };
     sprite._class = this;
+    sprite.alpha = 0;
 
     if (this.boostEffect) {
       // sprite.filters = [this.glow];
@@ -159,7 +160,7 @@ export default class Worm {
   _createEyeWhite(head, direction) {
     const sprite = new PIXI.Sprite(gameResources.oval.texture);
     sprite.anchor.set(0.5, 0.5);
-    sprite.scale.set(0.3);
+    sprite.scale.set(0.36);
     if (direction === "left") sprite.position.set(-10, 20);
     else sprite.position.set(-10, -20);
     head.addChild(sprite);
@@ -211,13 +212,16 @@ export default class Worm {
   }
 
   _positionUpdate(dt, isVisible = true) {
-    SpatialHash.wormDelete(this);
     const head = this.getHead();
-    const radian = Math.radians(this.angle - 90);
-    let distance = (this.speed / 60) * dt;
+    if (this.id === Share.myId && false) {
+      const radian = Math.radians(this.angle - 90);
+      let distance = (this.speed / 60) * dt;
 
-    head.x += Math.cos(radian) * distance;
-    head.y += Math.sin(radian) * distance;
+      head.x += Math.cos(radian) * distance;
+      head.y += Math.sin(radian) * distance;
+      console.log(this.id);
+    }
+    SpatialHash.wormDelete(this);
     SpatialHash.wormAdd(this);
 
     const distanceWithPrev = Math.sqrt(
@@ -327,12 +331,14 @@ export default class Worm {
     const head = this.getHead();
     const radian = Math.radians(this.angle - 90);
     head.rotation = radian + this._rotation;
+    head.alpha = 1;
     // this.nickname =
 
     for (let i = 1; i < this.bodies.length; i++) {
       if (!this.pathAngles[i]) break;
+      this.bodies[i].alpha = 1;
       this.bodies[i].rotation = this.pathAngles[i];
-      // this._adjustDistanceWithFront(i);
+      this._adjustDistanceWithFront(i);
     }
   }
 
@@ -402,7 +408,13 @@ export default class Worm {
 
     // if (this.id !== Share.myId) return;
     if (this.id === Share.myId) {
-      // Share.stage.setTilePosition(this.bodies[0].x, this.bodies[0].y);
+      this.rankerContainers = document.getElementsByClassName(
+        "ranker-container"
+      )[10];
+
+      this.rankerContainers.children[0].textContent =
+        "#" + WormManager._getMyRank();
+      this.rankerContainers.children[2].textContent = this.point.toLocaleString();
 
       this.zoom = Math.lerp(this.zoom, this.targetZoom, dt / 100);
       // Share.viewport.setZoom(this.zoom);
@@ -516,6 +528,15 @@ export default class Worm {
   boosterEnd() {
     this.boost = false;
     const useBoosterTime = Date.now() - this.boosterStartTime;
+    if (useBoosterTime < 300) {
+      const tail = this.getTail();
+      if (tail) {
+        Socket.boost_ing({
+          x: tail.x,
+          y: tail.y
+        });
+      }
+    }
     this.speed = DEFAULT_SPEED;
     this.boosterEffectOff();
     if (this.id === Share.myId) Socket.boost_end();
@@ -559,14 +580,6 @@ export default class Worm {
       }
     }
     this._adjustSize();
-
-    if (this.id === Share.myId) {
-      this.rankerContainers = document.getElementsByClassName(
-        "ranker-container"
-      )[10];
-
-      this.rankerContainers.children[2].textContent = point.toLocaleString();
-    }
   }
 
   // ! legacy remove !
@@ -631,7 +644,7 @@ export default class Worm {
   _adjustSize() {
     // point 10 = radius 20
     this.radius = 20 + this.point * 0.02;
-    this._followDistance = this.radius / 1.5;
+    this._followDistance = this.radius / 2;
     for (let i = 0; i < this.bodies.length; i++) {
       this.bodies[i].width = this.bodies[i].height = this.radius * 2;
     }

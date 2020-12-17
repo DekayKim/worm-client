@@ -56,22 +56,16 @@ export default class FoodManager {
   static _createSprite() {
     const glow = new PIXI.Sprite(gameResources.glow.texture);
     const sprite = new PIXI.Sprite(gameResources.oval.texture);
-    // sprite.position.set(x, y);
     sprite.anchor.set(0.5, 0.5);
-    // sprite.width = sprite.height = radius * 2;
     sprite.zIndex = -99999;
+    glow.zIndex = -99999 - 1;
     sprite.alpha = 0;
-    // sprite.tint = parseInt(color, 16);
 
     glow.anchor.set(0.5, 0.5);
-    sprite.addChild(glow);
+    // sprite.addChild(glow);
     sprite._glow = glow;
 
-    // glow.addChild(sprite);
-    // glow._glow = glow;
-
     this.foodSprites.push(sprite);
-    // this.glow = glow;
   }
 
   static borrowSprite() {
