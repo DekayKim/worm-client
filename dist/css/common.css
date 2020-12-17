@@ -1,4 +1,5 @@
 .button {
   border: 0.2rem solid rgb(9, 248, 148) !important;
   border-radius: 1rem;
+  cursor: pointer;
 }

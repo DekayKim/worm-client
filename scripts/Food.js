@@ -24,7 +24,7 @@ export default class Food {
     this.glow = this.sprite._glow;
     this.glow.position.set(x, y);
     this.glow.width = this.glow.height = radius * 2;
-    this.glow.tint = parseInt(color, 16);
+    // this.glow.tint = parseInt(color, 16);
     // this.sprite.addChild(glow);
     this.glow.alpha = 0;
 
@@ -50,7 +50,7 @@ export default class Food {
 
     if (worm.id === Share.myId) {
       const soundIndex = Math.floor(Math.random() * 3) + 1;
-      gameResources[`sound_eat_${soundIndex}`].sound.play();
+      if (Share.sound) gameResources[`sound_eat_${soundIndex}`].sound.play();
     }
     if (worm.id === Share.myId || worm._control) Socket.eat(worm, this);
     SpatialHash.delete(this);
@@ -89,7 +89,7 @@ export default class Food {
 
     if (this.sprite.alpha < 1) {
       this.sprite.alpha += 0.01;
-      this.glow.alpha = this.sprite.alpha / 2;
+      this.glow.alpha = this.sprite.alpha / 4;
     }
 
     if (this.target) {

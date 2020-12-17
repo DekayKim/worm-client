@@ -9,17 +9,57 @@ export default class DOMEvents {
     this.titleDiv = this._get("title");
     this.ingameDiv = this._get("ingame");
     this.gameOverDiv = this._get("gameover");
+    this.soundDiv = this._get("sound");
     this.rankerContainers = document.getElementsByClassName("ranker-container");
 
     for (let i = 0; i < 10; i++) {
       const container = this.rankerContainers[i];
       container.style.opacity = 1 - i * 0.08;
     }
+    this.sound();
     this.title();
     this.gameOver();
     this._hide(this.gameOverDiv);
 
     this._setRankerContainer(1, "지금", 5000, "#ff0000");
+  }
+
+  static sound() {
+    const sound = localStorage.getItem("sound") === "true";
+
+    const soundON = () => {
+      this._get("icon").classList.remove("sound-off");
+      this._get("icon").classList.add("sound-on");
+      this._get("sound-state").textContent = "Sound\nON";
+      Share.set("sound", true);
+      localStorage.setItem("sound", true);
+      if (Share.bgm) {
+        if (!Share.bgm.isPlaying) Share.bgm.play();
+        Share.bgm.volume = 1;
+      }
+    };
+
+    const soundOFF = () => {
+      this._get("icon").classList.remove("sound-on");
+      this._get("icon").classList.add("sound-off");
+      this._get("sound-state").textContent = "Sound\nOFF";
+      Share.set("sound", false);
+      localStorage.setItem("sound", false);
+      if (Share.bgm) Share.bgm.volume = 0;
+    };
+
+    if (sound) soundON();
+    else soundOFF();
+
+    Share.set("sound", sound);
+    this._get("sound").onclick = () => {
+      const icon = this._get("icon");
+      if (icon.classList.contains("sound-on")) {
+        soundOFF();
+      } else {
+        soundON();
+      }
+    };
   }
 
   static title() {
@@ -51,6 +91,7 @@ export default class DOMEvents {
   static showIngame() {
     this._get("my-score").textContent = 0;
     this._show(this.ingameDiv);
+    this._hide(this.soundDiv);
   }
 
   static hideInGame() {
@@ -71,7 +112,8 @@ export default class DOMEvents {
   }
 
   static showGameOver() {
-    gameResources.sound_gameover.sound.play();
+    this._show(this.soundDiv);
+    if (Share.sound) gameResources.sound_gameover.sound.play();
 
     const { rank, name, point } = Share.dieInfo;
     this.makeRankItem(rank, name, point, this._get("my-rank"));

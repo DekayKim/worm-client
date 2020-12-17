@@ -495,7 +495,8 @@ export default class Worm {
 
   boosterStart() {
     if (this.point <= 0) return;
-    if (this.id === Share.myId) gameResources.sound_dash.sound.play();
+    if (this.id === Share.myId && Share.sound)
+      gameResources.sound_dash.sound.play();
     this.boost = true;
     const now = Date.now();
     this.boosterStartTime = now;

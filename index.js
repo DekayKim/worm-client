@@ -100,7 +100,15 @@ async function process(loader, resources) {
   var cull = new Cull({ recursive: false });
   Share.set("cull", cull);
 
-  gameResources.sound_bgm.sound.play({ loop: true });
+  let sound = localStorage.getItem("sound");
+  if (sound === null) {
+    localStorage.setItem("sound", true);
+    sound = true;
+  }
+  Share.set("bgm", gameResources.sound_bgm.sound);
+  if (sound === "true") {
+    Share.bgm.play({ loop: true });
+  }
   stage = new Stage();
   Share.set("stage", stage);
   await Socket.getScheme();
