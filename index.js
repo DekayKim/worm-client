@@ -62,6 +62,13 @@ function resize() {
 
 window.addEventListener("resize", resize);
 window.addEventListener("load", DOMEvents.init.bind(DOMEvents));
+window.addEventListener("visibilitychange", event => {
+  if (document.visibilityState == "visible") {
+    if (Share.bgm) Share.bgm.volume = 1;
+  } else {
+    if (Share.bgm) Share.bgm.volume = 0;
+  }
+});
 const loader = PIXI.Loader.shared;
 loader.add("oval", "./assets/oval.png");
 loader.add("oval2", "./assets/oval2.png");
