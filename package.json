@@ -8,6 +8,7 @@
   "dependencies": {
     "@pixi-essentials/cull": "^1.0.9",
     "@pixi/filter-glow": "^3.1.1",
+    "emoji-regex": "^9.2.0",
     "matter-js": "^0.14.2",
     "mobile-detect": "^1.4.4",
     "pixi-cull": "^1.0.0",

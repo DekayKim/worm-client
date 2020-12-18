@@ -3,6 +3,7 @@ import WormManager from "./WormManager";
 import FoodManager from "./FoodManager";
 import SpatialHash from "./SpatialHash";
 import Share from "./share";
+import emojiRegex from "emoji-regex";
 
 export default class DOMEvents {
   static init() {
@@ -73,9 +74,11 @@ export default class DOMEvents {
 
   static title() {
     this.titleSetting();
-
+    Share.login = "guest";
     /* start button - click */
     this._get("start-button").addEventListener("click", () => {
+      // toggleFullScreen();
+      requestFullScreen(document.body);
       if (Share.login) {
         this._hide(this._get("title"));
         this.showIngame();
@@ -86,9 +89,15 @@ export default class DOMEvents {
     });
 
     /* input edit */
+    const regex = new emojiRegex();
     this._get("nickname").addEventListener("input", e => {
-      // const translate = inko.ko2en(e.target.value);
-      // e.target.value = translate;
+      const { value } = e.target;
+      if (value.length > 15) e.target.value = value.substring(0, 15);
+
+      const result = regex.exec(e.target.value);
+      if (result) {
+        e.target.value = value.replace(regex, "");
+      }
     });
   }
 
@@ -208,5 +217,41 @@ export default class DOMEvents {
 
   static _show(element) {
     element.style.display = "flex";
+  }
+}
+
+function requestFullScreen(element) {
+  // Supports most browsers and their versions.
+  var requestMethod =
+    element.requestFullScreen ||
+    element.webkitRequestFullScreen ||
+    element.mozRequestFullScreen ||
+    element.msRequestFullScreen;
+
+  if (requestMethod) {
+    // Native full screen.
+    requestMethod.call(element);
+  } else if (typeof window.ActiveXObject !== "undefined") {
+    // Older IE.
+    var wscript = new ActiveXObject("WScript.Shell");
+    if (wscript !== null) {
+      wscript.SendKeys("{F11}");
+    }
+  }
+}
+
+
+function toggleFullScreen() {
+  var doc = window.document;
+  var docEl = doc.documentElement;
+
+  var requestFullScreen = docEl.requestFullscreen || docEl.mozRequestFullScreen || docEl.webkitRequestFullScreen || docEl.msRequestFullscreen;
+  var cancelFullScreen = doc.exitFullscreen || doc.mozCancelFullScreen || doc.webkitExitFullscreen || doc.msExitFullscreen;
+
+  if(!doc.fullscreenElement && !doc.mozFullScreenElement && !doc.webkitFullscreenElement && !doc.msFullscreenElement) {
+    requestFullScreen.call(docEl);
+  }
+  else {
+    cancelFullScreen.call(doc);
   }
 }

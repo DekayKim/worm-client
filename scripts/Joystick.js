@@ -9,7 +9,7 @@ export default class Joystick {
 
     const base = new PIXI.Sprite(gameResources.joystick_base.texture);
     base.anchor.set(0.5, 0.5);
-    const margin = min * 0.15 + base.width / 2;
+    const margin = min * 0.12 + base.width / 2;
     base.x = margin;
     base.y = Share.windowSize.height - margin;
     base.interactive = true;

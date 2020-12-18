@@ -45,6 +45,11 @@ var viewport = new Viewport({
 });
 
 function resize() {
+  const size = {
+    width: screen.width,
+    height: screen.height
+  };
+
   Share.set("windowSize", {
     width: window.innerWidth,
     height: window.innerHeight
@@ -147,7 +152,7 @@ async function login() {
   let result = await response.json();
   if (result === null) result = "guest";
   Share.set("login", result);
-  
+
   DOMEvents.titleSetting();
 }
 

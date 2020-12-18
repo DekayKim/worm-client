@@ -3,3 +3,11 @@
   border-radius: 1rem;
   cursor: pointer;
 }
+html,
+body {
+  overflow: hidden;
+  height: 100%;
+}
+body {
+  position: relative;
+}
