@@ -19,7 +19,6 @@ export default class DOMEvents {
     this.sound();
     this.title();
     this.gameOver();
-    this._hide(this.gameOverDiv);
 
     this._setRankerContainer(1, "지금", 5000, "#ff0000");
   }
@@ -103,7 +102,7 @@ export default class DOMEvents {
 
       let userId = 0;
       if (Share.login !== "guest") userId = Share.login.userIdx;
-      
+
       Socket.enter(this._get("nickname").value, userId);
     });
   }

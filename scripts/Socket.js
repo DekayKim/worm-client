@@ -8,26 +8,7 @@ import DOMEvents from "./DOMEvents";
 // const serverURL = "118.128.86.111:3636";
 // const serverURL = "ec2-13-124-27-164.ap-northeast-2.compute.amazonaws.com:3636";
 const serverURL = "worm.among.live:3636";
-const socketList = [
-  "enter",
-  "ai",
-  "position",
-  "position_angle",
-  "position_all",
-  "point",
-  "new_worm",
-  "new_food",
-  "delete_food",
-  "connect",
-  "bound_check",
-  "inbound",
-  "delete_worm",
-  "disconnect",
-  "boost_start",
-  "boost_end",
-  "tail_position"
-  // "rank"
-];
+
 export default class Socket {
   static init() {
     const ws = new WebSocket(`wss://${serverURL}`);
@@ -344,18 +325,15 @@ export default class Socket {
     this.tail_position(id);
   }
 
-  static _on_rank(data) {
-    console.log(data);
-    for (let i = 0; i < 10; i++) {
-      const worm = WormManager.get(data[i]);
-      if (worm) {
-        DOMEvents._setRankerContainer(
-          i + 1,
-          worm.name,
-          worm.point,
-          "#" + worm.color.toString(16)
-        );
-      }
+  static _on_record(data) {
+    const { best, world } = data;
+    const myBestDiv = this._get("my-best");
+    this.makeRankItem(best.rank, best.name, best.point, myBestDiv);
+
+    const worldRecordDiv = this._get("all-rank");
+    for (let i = 0; i < world.length; i++) {
+      const { name, rank, point } = world[i];
+      this.makeRankItem(rank, name, point, worldRecordDiv);
     }
   }
 
