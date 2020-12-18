@@ -80,7 +80,9 @@ export default class DOMEvents {
       if (Share.login) {
         this._hide(this._get("title"));
         this.showIngame();
-        Socket.enter(this._get("nickname").value);
+        let userId = 0;
+        if (Share.login !== "guest") userId = Share.login.userId;
+        Socket.enter(this._get("nickname").value, userId);
       }
     });
 

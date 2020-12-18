@@ -52,10 +52,10 @@ export default class Socket {
     this.prevAI = [];
   }
 
-  static enter(name) {
+  static enter(name, userId) {
     this._emit(
       "enter",
-      { name, color: getRandomColor(), isMobile: Share.isMobile },
+      { userId, name, color: getRandomColor(), isMobile: Share.isMobile },
       true
     );
   }
