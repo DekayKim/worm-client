@@ -100,7 +100,11 @@ export default class DOMEvents {
       this._removeAllRankItems(this._get("all-rank"));
       this._hide(this._get("gameover"));
       this.showIngame();
-      Socket.enter(this._get("nickname").value);
+
+      let userId = 0;
+      if (Share.login !== "guest") userId = Share.login.userIdx;
+      
+      Socket.enter(this._get("nickname").value, userId);
     });
   }
 
