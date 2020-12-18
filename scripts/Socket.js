@@ -327,13 +327,13 @@ export default class Socket {
 
   static _on_record(data) {
     const { best, world } = data;
-    const myBestDiv = this._get("my-best");
-    this.makeRankItem(best.rank, best.name, best.point, myBestDiv);
+    const myBestDiv = DOMEvents._get("my-best");
+    DOMEvents.makeRankItem(best.rank, best.name, best.point, myBestDiv);
 
-    const worldRecordDiv = this._get("all-rank");
+    const worldRecordDiv = DOMEvents._get("all-rank");
     for (let i = 0; i < world.length; i++) {
       const { name, rank, point } = world[i];
-      this.makeRankItem(rank, name, point, worldRecordDiv);
+      DOMEvents.makeRankItem(rank, name, point, worldRecordDiv);
     }
   }
 
