@@ -96,6 +96,7 @@ loader.load(process);
 async function process(loader, resources) {
   window.gameResources = resources;
   document.body.appendChild(app.view); // create viewport
+  login();
 
   Share.set("wormDelay", new Set());
   Share.set("app", app);
@@ -132,6 +133,22 @@ async function process(loader, resources) {
 
     game.update(dt);
   });
+}
+
+// login
+
+function login() {
+  // axios
+  //   .get("https://www.among.live/api/user", {
+  //     withCredentials: true,
+  //     crossdomain: true
+  //   })
+  //   .then(res => console.log(res.data));
+  fetch("https://www.among.live/api/user", {
+    method: "GET", // *GET, POST, PUT, DELETE, etc.
+    mode: "cors", // no-cors, cors, *same-origin
+    credentials: "include" // include, *same-origin, omit
+  }).then(response => console.log(response));
 }
 
 Math.radians = function(degrees) {
