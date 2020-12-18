@@ -147,8 +147,12 @@ function login() {
   fetch("https://www.among.live/api/user", {
     method: "GET", // *GET, POST, PUT, DELETE, etc.
     mode: "cors", // no-cors, cors, *same-origin
-    credentials: "include" // include, *same-origin, omit
-  }).then(response => console.log(response));
+    // cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
+    credentials: "include", // include, *same-origin, omit
+    headers: {
+      "Content-Type": "application/json"
+    }
+  }).then(response => console.log(response.json()));
 }
 
 Math.radians = function(degrees) {
