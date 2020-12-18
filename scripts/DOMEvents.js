@@ -62,12 +62,24 @@ export default class DOMEvents {
     };
   }
 
+  static titleSetting() {
+    if (Share.login) {
+      const { nickname, userIdx: userId } = Share.login;
+      this._get("nickname").value = nickname;
+      this._get("nickname").disabled = true;
+    }
+  }
+
   static title() {
+    this.titleSetting();
+
     /* start button - click */
     this._get("start-button").addEventListener("click", () => {
-      this._hide(this._get("title"));
-      this.showIngame();
-      Socket.enter(this._get("nickname").value);
+      if (Share.result) {
+        this._hide(this._get("title"));
+        this.showIngame();
+        Socket.enter(this._get("nickname").value);
+      }
     });
 
     /* input edit */

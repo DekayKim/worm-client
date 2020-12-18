@@ -137,22 +137,18 @@ async function process(loader, resources) {
 
 // login
 
-function login() {
-  // axios
-  //   .get("https://www.among.live/api/user", {
-  //     withCredentials: true,
-  //     crossdomain: true
-  //   })
-  //   .then(res => console.log(res.data));
-  fetch("https://www.among.live/api/user", {
-    method: "GET", // *GET, POST, PUT, DELETE, etc.
-    mode: "cors", // no-cors, cors, *same-origin
-    // cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
-    credentials: "include", // include, *same-origin, omit
-    headers: {
-      "Content-Type": "application/json"
-    }
-  }).then(response => console.log(response.json()));
+async function login() {
+  const response = await fetch("https://www.among.live/api/user", {
+    method: "GET",
+    mode: "cors",
+    credentials: "include"
+  });
+
+  let result = await response.json();
+  if (result === null) result = "guest";
+  Share.set("login", result);
+  
+  DOMEvents.titleSetting();
 }
 
 Math.radians = function(degrees) {
