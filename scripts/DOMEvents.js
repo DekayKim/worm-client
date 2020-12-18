@@ -65,7 +65,7 @@ export default class DOMEvents {
   static titleSetting() {
     if (Share.login) {
       if (Share.login !== "guest") {
-        const { nickname, userIdx: userId } = Share.login;
+        const { nickname } = Share.login;
         this._get("nickname").value = nickname;
         this._get("nickname").disabled = true;
       }
@@ -81,7 +81,7 @@ export default class DOMEvents {
         this._hide(this._get("title"));
         this.showIngame();
         let userId = 0;
-        if (Share.login !== "guest") userId = Share.login.userId;
+        if (Share.login !== "guest") userId = Share.login.userIdx;
         Socket.enter(this._get("nickname").value, userId);
       }
     });
