@@ -15,8 +15,8 @@ import Socket from "./scripts/Socket";
 
 const md = new MobileDetect(window.navigator.userAgent);
 let stage = null;
-console.log("isMobile", md.mobile());
-Share.set("isMobile", md.mobile() ? true : false);
+console.log("isMobile", md.mobile() ? true : md.tablet() ? true : false);
+Share.set("isMobile", md.mobile() ? true : md.tablet() ? true : false);
 window.PIXI = PIXI;
 
 // const stats = new Stats();
