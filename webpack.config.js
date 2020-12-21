@@ -6,7 +6,7 @@ module.exports = {
     filename: "bundle.js",
     path: path.resolve(__dirname, "dist")
   },
-  // mode: "production"
-  mode: "development",
-  watch: true
+  mode: "production"
+  // mode: "development",
+  // watch: true
 };
