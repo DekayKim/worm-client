@@ -67,6 +67,7 @@ function resize() {
     Share.stageSize,
     Share.stageSize
   );
+  console.log(app.view,Share.stageSize);
 
   if (stage) stage.resize(window.innerWidth, window.innerHeight);
 }

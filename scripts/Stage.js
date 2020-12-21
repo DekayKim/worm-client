@@ -39,7 +39,7 @@ export default class Stage {
 
     // Share.viewport.addChild(tilingSprite);
     Share.app.stage.sortableChildren = true;
-    if (!Share.isMobile || true) Share.app.stage.addChild(tilingSprite);
+    Share.app.stage.addChild(tilingSprite);
     Share.viewport.addChild(graphics);
     Share.viewport.addChild(graphics1);
     Share.app.stage.addChild(minimap);
@@ -47,6 +47,12 @@ export default class Stage {
     // graphics.beginFill(0x000000, 0.5);
     graphics.lineStyle(5, 0xffffff, 1);
     graphics.drawRect(0, 0, Share.stageSize, Share.stageSize);
+
+
+    if (Share.isMobile) {
+      tilingSprite.tileScale.set(0.5);
+      Share.viewport.setZoom(0.5, true);
+    }
   }
 
   resize(width, height) {
@@ -55,9 +61,10 @@ export default class Stage {
   }
 
   setTilePosition(x, y) {
+    const isMobile = Share.isMobile;
     this.tilingSprite.tilePosition.set(
-      -x % this.tilingSprite.texture.orig.width,
-      -y % this.tilingSprite.texture.orig.height
+      -x % this.tilingSprite.texture.orig.width * (isMobile ? 0.5 : 1),
+      -y % this.tilingSprite.texture.orig.height * (isMobile ? 0.5 : 1)
     );
   }
 

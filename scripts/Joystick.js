@@ -17,6 +17,7 @@ export default class Joystick {
     base.on("pointermove", this._pointerMove.bind(this));
     base.on("pointerup", this._pointerUp.bind(this));
     base.on("pointerupoutside", this._pointerUp.bind(this));
+    base.scale.set(0.7);
     this.base = base;
 
     const joystickButton = new PIXI.Sprite(
@@ -29,7 +30,7 @@ export default class Joystick {
 
     const boostButton = new PIXI.Sprite(gameResources.boost_button.texture);
     boostButton.anchor.set(0.5, 0.5);
-    boostButton.scale.set(1.4);
+    boostButton.scale.set(1);
     boostButton.interactive = true;
     boostButton.position.set(Share.windowSize.width - margin + 40, base.y);
     boostButton.on("pointerdown", this._boosterStart.bind(this));
@@ -50,7 +51,7 @@ export default class Joystick {
     const margin = min * 0.08 + this.base.width / 2;
     this.base.x = margin;
     this.base.y = Share.windowSize.height - margin;
-    this.boostButton.position.set(Share.windowSize.width - margin + 40, this.base.y);
+    this.boostButton.position.set(Share.windowSize.width - margin + 20, this.base.y);
   }
 
   hide() {
