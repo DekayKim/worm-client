@@ -325,11 +325,12 @@ export default class Socket {
     this.tail_position(id);
   }
 
-  static _on_record(data) {
-    const { best, world } = data;
+  static _on_record_best(best) {
     const myBestDiv = DOMEvents._get("my-best");
     DOMEvents.makeRankItem(best.rank, best.name, best.point, myBestDiv);
+  }
 
+  static _on_record(world) {
     const worldRecordDiv = DOMEvents._get("all-rank");
     for (let i = 0; i < world.length; i++) {
       const { name, rank, point } = world[i];

@@ -9,7 +9,7 @@
   align-items: center;
   color: white;
   pointer-events: none;
-  font-size: 0.7rem;
+  font-size: 1rem;
 }
 
 #ingame h3 {
@@ -19,7 +19,7 @@
 #ingame .ranker-container {
   width: 70%;
   display: flex;
-  font-size: 0.7rem;
+  font-size: 1rem;
 }
 
 #ingame .ranker-container .ranking {
@@ -43,6 +43,7 @@
   margin-top: 10px;
 }
 
+/* 
 @media screen and (orientation : landscape) {
   #ingame :nth-child(n+7){
     display: none;
@@ -52,3 +53,9 @@
     display: flex;
   }
 }
+
+@media (min-width:1281px) { 
+  #ingame :nth-child(n+7){
+    display: flex;
+  }
+ } */
