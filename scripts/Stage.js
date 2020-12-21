@@ -48,10 +48,11 @@ export default class Stage {
     graphics.lineStyle(5, 0xffffff, 1);
     graphics.drawRect(0, 0, Share.stageSize, Share.stageSize);
 
+    this.cameraZoom = 0.3;
 
     if (Share.isMobile) {
-      tilingSprite.tileScale.set(0.5);
-      Share.viewport.setZoom(0.5, true);
+      tilingSprite.tileScale.set(this.cameraZoom);
+      Share.viewport.setZoom(this.cameraZoom, true);
     }
   }
 
@@ -63,8 +64,8 @@ export default class Stage {
   setTilePosition(x, y) {
     const isMobile = Share.isMobile;
     this.tilingSprite.tilePosition.set(
-      -x % this.tilingSprite.texture.orig.width * (isMobile ? 0.5 : 1),
-      -y % this.tilingSprite.texture.orig.height * (isMobile ? 0.5 : 1)
+      -x % this.tilingSprite.texture.orig.width * (isMobile ? this.cameraZoom : 1),
+      -y % this.tilingSprite.texture.orig.height * (isMobile ? this.cameraZoom : 1)
     );
   }
 

@@ -42,3 +42,13 @@
 #ingame #my-info {
   margin-top: 10px;
 }
+
+@media screen and (orientation : landscape) {
+  #ingame :nth-child(n+7){
+    display: none;
+  }
+
+  #ingame #my-info {
+    display: flex;
+  }
+}
