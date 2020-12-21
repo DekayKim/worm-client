@@ -47,9 +47,10 @@ export default class Joystick {
     this.boostButton.visible = true;
 
     const min = Math.min(Share.windowSize.width, Share.windowSize.height);
-    const margin = min * 0.12 + this.base.width / 2;
+    const margin = min * 0.08 + this.base.width / 2;
     this.base.x = margin;
     this.base.y = Share.windowSize.height - margin;
+    this.boostButton.position.set(Share.windowSize.width - margin + 40, this.base.y);
   }
 
   hide() {
