@@ -195,7 +195,7 @@ export default class Socket {
   }
 
   static _on_point(data) {
-    console.log(data, "on_point");
+    // console.log(data, "on_point");
     // const worm = WormManager.get(data.id);
     // if (worm) {
     //   const eatAmount = data.point - worm.point;
@@ -326,11 +326,13 @@ export default class Socket {
   }
 
   static _on_record_best(best) {
+    console.log("best", best);
     const myBestDiv = DOMEvents._get("my-best");
     DOMEvents.makeRankItem(best.rank, best.name, best.point, myBestDiv);
   }
 
-  static _on_record(world) {
+  static _on_record_world(world) {
+    console.log("world", world);
     const worldRecordDiv = DOMEvents._get("all-rank");
     for (let i = 0; i < world.length; i++) {
       const { name, rank, point } = world[i];

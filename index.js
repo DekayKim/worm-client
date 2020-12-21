@@ -41,7 +41,6 @@ var app = new PIXI["Application"]({
   backgroundColor: 0x222222
   // resolution : 4,
 });
-console.log(app);
 
 var viewport = new Viewport({
   screenWidth: app.view.offsetWidth,
@@ -67,7 +66,6 @@ function resize() {
     Share.stageSize,
     Share.stageSize
   );
-  console.log(app.view, Share.stageSize);
 
   if (stage) stage.resize(window.innerWidth, window.innerHeight);
 }
