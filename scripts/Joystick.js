@@ -31,13 +31,30 @@ export default class Joystick {
     boostButton.anchor.set(0.5, 0.5);
     boostButton.scale.set(1.4);
     boostButton.interactive = true;
-    boostButton.position.set(Share.windowSize.width - margin, base.y);
+    boostButton.position.set(Share.windowSize.width - margin + 40, base.y);
     boostButton.on("pointerdown", this._boosterStart.bind(this));
     boostButton.on("pointerup", this._boosterEnd.bind(this));
     boostButton.on("pointerupoutside", this._boosterEnd.bind(this));
+    this.boostButton = boostButton;
     Share.app.stage.addChild(boostButton);
 
     Share.set("joystickAngle", 0);
+    this.hide();
+  }
+
+  show() {
+    this.base.visible = true;
+    this.boostButton.visible = true;
+
+    const min = Math.min(Share.windowSize.width, Share.windowSize.height);
+    const margin = min * 0.12 + this.base.width / 2;
+    this.base.x = margin;
+    this.base.y = Share.windowSize.height - margin;
+  }
+
+  hide() {
+    this.base.visible = false;
+    this.boostButton.visible = false;
   }
 
   _pointerDown(e) {

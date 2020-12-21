@@ -36,6 +36,7 @@ var app = new PIXI["Application"]({
   backgroundColor: 0x222222
   // resolution : 4,
 });
+console.log(app);
 
 var viewport = new Viewport({
   screenWidth: app.view.offsetWidth,
@@ -156,34 +157,34 @@ async function login() {
   DOMEvents.titleSetting();
 }
 
-Math.radians = function(degrees) {
+Math.radians = function (degrees) {
   return (degrees * Math.PI) / 180;
 }; // Converts from radians to degrees.
 
-Math.degrees = function(radians) {
+Math.degrees = function (radians) {
   return (radians * 180) / Math.PI;
 };
 
-Math.getAngleWithTwoPoint = function(point1, point2) {
+Math.getAngleWithTwoPoint = function (point1, point2) {
   return Math.atan2(point2.y - point1.y, point2.x - point1.x);
 };
 
-Math.getPointWithAngleDistance = function(radian, distance) {
+Math.getPointWithAngleDistance = function (radian, distance) {
   return {
     x: distance * this.cos(radian),
     y: distance * this.sin(radian)
   };
 };
 
-Math.angleDiff = function(radianA, radianB) {
+Math.angleDiff = function (radianA, radianB) {
   return this.degrees(radianA) + 360 - (this.degrees(radianB) + 360);
 };
 
-Math.getDistance = function(pointA, pointB) {
+Math.getDistance = function (pointA, pointB) {
   return Math.sqrt((pointA.x - pointB.x) ** 2 + (pointA.y - pointB.y) ** 2);
 };
 
-Math.lineLine = function(x1, y1, x2, y2, x3, y3, x4, y4) {
+Math.lineLine = function (x1, y1, x2, y2, x3, y3, x4, y4) {
   // calculate the direction of the lines
   const uA =
     ((x4 - x3) * (y1 - y3) - (y4 - y3) * (x1 - x3)) /
@@ -210,7 +211,7 @@ Math.lineLine = function(x1, y1, x2, y2, x3, y3, x4, y4) {
   return false;
 };
 
-Math.lineRect = function(x1, y1, x2, y2, rx, ry, rw, rh) {
+Math.lineRect = function (x1, y1, x2, y2, rx, ry, rw, rh) {
   // check if the line has hit any of the rectangle's sides
   // uses the Line/Line function below
   const left = this.lineLine(x1, y1, x2, y2, rx, ry, rx, ry + rh);
@@ -226,7 +227,7 @@ Math.lineRect = function(x1, y1, x2, y2, rx, ry, rw, rh) {
   return false;
 };
 
-Math.OBB = function(positionA, radiusA, positionB, radiusB) {
+Math.OBB = function (positionA, radiusA, positionB, radiusB) {
   const distance = Math.sqrt(
     (positionA.x - positionB.x) ** 2 + (positionA.y - positionB.y) ** 2
   );
@@ -237,7 +238,7 @@ Math.OBB = function(positionA, radiusA, positionB, radiusB) {
   return false;
 };
 
-Math.pointInRect = function(point, bound) {
+Math.pointInRect = function (point, bound) {
   if (
     point.x >= bound.left && // right of the left edge AND
     point.x <= bound.right && // left of the right edge AND
@@ -249,7 +250,7 @@ Math.pointInRect = function(point, bound) {
   return false;
 };
 
-Math.lerp = function(a, b, r) {
+Math.lerp = function (a, b, r) {
   return a + (b - a) * r;
 };
 
@@ -262,7 +263,7 @@ window.getRandomColor = () => {
   return color;
 };
 
-Math.AABB = function(rect1, rect2) {
+Math.AABB = function (rect1, rect2) {
   return (
     rect1.x < rect2.x + rect2.width &&
     rect1.x + rect1.width > rect2.x &&

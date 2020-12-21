@@ -1,18 +1,25 @@
 #ingame {
   padding: 1rem 0px;
   position: absolute;
-  right: 1vmin;
-  top: 1vmin;
+  right: 1%;
+  top: 0.5vmin;
   width: 15vw;
   display: none;
   flex-direction: column;
   align-items: center;
   color: white;
+  pointer-events: none;
+  font-size: 0.7rem;
+}
+
+#ingame h3 {
+  margin : 0;
 }
 
 #ingame .ranker-container {
-  width: 90%;
+  width: 70%;
   display: flex;
+  font-size: 0.7rem;
 }
 
 #ingame .ranker-container .ranking {

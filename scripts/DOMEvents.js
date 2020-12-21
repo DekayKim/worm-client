@@ -78,7 +78,8 @@ export default class DOMEvents {
     /* start button - click */
     this._get("start-button").addEventListener("click", () => {
       // toggleFullScreen();
-      requestFullScreen(document.body);
+      // requestFullScreen(document.body);
+      // if (Share.joystick) Share.joystick.show();
       if (Share.login) {
         this._hide(this._get("title"));
         this.showIngame();
@@ -120,6 +121,7 @@ export default class DOMEvents {
     this._get("my-score").textContent = 0;
     this._show(this.ingameDiv);
     this._hide(this.soundDiv);
+    if (Share.joystick) Share.joystick.show();
   }
 
   static hideInGame() {
@@ -142,6 +144,8 @@ export default class DOMEvents {
   static showGameOver() {
     this._show(this.soundDiv);
     if (Share.sound) gameResources.sound_gameover.sound.play();
+    if (Share.joystick) Share.joystick.hide();
+
 
     const { rank, name, point } = Share.dieInfo;
     this.makeRankItem(rank, name, point, this._get("my-rank"));
@@ -248,7 +252,7 @@ function toggleFullScreen() {
   var requestFullScreen = docEl.requestFullscreen || docEl.mozRequestFullScreen || docEl.webkitRequestFullScreen || docEl.msRequestFullscreen;
   var cancelFullScreen = doc.exitFullscreen || doc.mozCancelFullScreen || doc.webkitExitFullscreen || doc.msExitFullscreen;
 
-  if(!doc.fullscreenElement && !doc.mozFullScreenElement && !doc.webkitFullscreenElement && !doc.msFullscreenElement) {
+  if (!doc.fullscreenElement && !doc.mozFullScreenElement && !doc.webkitFullscreenElement && !doc.msFullscreenElement) {
     requestFullScreen.call(docEl);
   }
   else {

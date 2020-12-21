@@ -16,7 +16,10 @@ export default class Game {
     WormManager.init();
     FoodManager.init();
     Collision.init();
-    if (Share.isMobile) new Joystick();
+    if (Share.isMobile) {
+      const joystick = new Joystick();
+      Share.set("joystick", joystick);
+    }
     this.adjustPositionTime = Date.now();
 
     this.prevVisibles = [];
@@ -126,7 +129,7 @@ export default class Game {
       }
     }
   }
-  destroy() {}
+  destroy() { }
 
   cull(hero) {
     for (let i = 0; i < this.prevVisibles.length; i++) {
