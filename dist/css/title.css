@@ -20,8 +20,9 @@
 
 #title #nickname-container {
   width: 100%;
-  padding: 5vh 0px;
-  margin: 2vh 0px;
+  /* padding: 5vh 0px; */
+  /* margin: 2vh 0px; */
+  margin-bottom: 5vh;
   /* border-top: 1px solid white;
   border-bottom: 1px solid white; */
 }
@@ -30,14 +31,14 @@
   margin-left: 10%;
 }
 
+
 #nickname-container input {
   width: 80%;
   height: 10vh;
-  padding: 0px;
   border: 0;
   background-color: rgba(0, 0, 0, 0.8);
   color: white;
-  padding: 0px 10%;
+  padding: 1rem 10%;
   font-size: 2rem;
   /* margin-left: 10%; */
 }
@@ -49,19 +50,6 @@
 
 #title #button-container > * + * {
   margin-top: 1rem;
-}
-
-@media screen and (orientation : landscape) {
-  #title #button-container {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-  } 
-
-  #title #button-container > * + * {
-    margin-top : 0;
-    margin-left: 1rem;
-  }
 }
 
 #title #button-container > * {
@@ -78,12 +66,21 @@
   overflow: hidden;
 }
 
+@media screen and (orientation : landscape) {
+  #title #button-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+  } 
 
+  #title #button-container > *{
+    height : 3rem;
+    font-size: 1.5rem;
+  }
 
-#title #start-button {
-  /* background-image: url("../assets/button_4.png"); */
+  #title #button-container > * + * {
+    margin-top : 0;
+    margin-left: 1rem;
+  }
 }
 
-#title #another-game-button {
-  /* background-image: url("../assets/button_3.png"); */
-}

@@ -52,7 +52,8 @@ export default class Stage {
 
     if (Share.isMobile) {
       tilingSprite.tileScale.set(this.cameraZoom);
-      Share.viewport.setZoom(this.cameraZoom, true);
+      // Share.viewport.setZoom(this.cameraZoom, true);
+      Share.viewport.zoomPercent(-0.5,true);
     }
   }
 
