@@ -13,11 +13,14 @@ import TestWorm from "./scripts/TestWorm";
 import { Cull } from "@pixi-essentials/cull";
 import Socket from "./scripts/Socket";
 
+// const md = new MobileDetect("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0.1 Safari/605.1.15");
 const md = new MobileDetect(window.navigator.userAgent);
-console.log(md);
+const isIpad =
+  window.navigator.userAgent.match(/Mac/) &&
+  window.navigator.maxTouchPoints &&
+  window.navigator.maxTouchPoints > 2;
 let stage = null;
-console.log("isMobile", md.mobile() ? true : md.tablet() ? true : false);
-Share.set("isMobile", md.mobile() ? true : md.tablet() ? true : false);
+Share.set("isMobile", md.mobile() || isIpad ? true : false);
 window.PIXI = PIXI;
 
 // const stats = new Stats();
