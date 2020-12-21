@@ -48,12 +48,12 @@ export default class Stage {
     graphics.lineStyle(5, 0xffffff, 1);
     graphics.drawRect(0, 0, Share.stageSize, Share.stageSize);
 
-    this.cameraZoom = 0.3;
+    this.cameraZoom = 1;
 
     if (Share.isMobile) {
-      tilingSprite.tileScale.set(this.cameraZoom);
+      // tilingSprite.tileScale.set(this.cameraZoom);
       // Share.viewport.setZoom(this.cameraZoom, true);
-      Share.viewport.zoomPercent(-0.5,true);
+      // Share.viewport.zoomPercent(-0.5,true);
     }
   }
 
