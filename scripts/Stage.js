@@ -34,6 +34,23 @@ export default class Stage {
     tilingSprite.tint = 0x777777;
     this.tilingSprite = tilingSprite;
     tilingSprite.zIndex = -999999999;
+    Share.viewport.interactive = true;
+    Share.viewport.on("mousedown", () => {
+      const now = Date.now();
+      if (this._lastClickTime && now - this._lastClickTime < 300) {
+        const worm = WormManager.get(Share.myId);
+        if (worm) worm.boosterStart();
+        // Share.set("doubleClick", true);
+      } else {
+        this._lastClickTime = now;
+      }
+    });
+
+    Share.viewport.on("mouseup", () => {
+      const worm = WormManager.get(Share.myId);
+      if (worm) worm.boosterEnd();
+      // Share.set("doubleClick", false);
+    });
     // tilingSprite.cacheAsBitmap = true;
     PIXI.settings.PRECISION_FRAGMENT = PIXI.PRECISION.HIGH;
 
