@@ -20,8 +20,6 @@ export default class DOMEvents {
     this.sound();
     this.title();
     this.gameOver();
-
-    this._setRankerContainer(1, "지금", 5000, "#ff0000");
   }
 
   static sound() {
