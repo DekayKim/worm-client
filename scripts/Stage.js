@@ -31,7 +31,7 @@ export default class Stage {
       Share.windowSize.height
     );
     tilingSprite.roundPixels = true;
-    tilingSprite.tint = 0xafafaf;
+    tilingSprite.tint = 0x777777;
     this.tilingSprite = tilingSprite;
     tilingSprite.zIndex = -999999999;
     // tilingSprite.cacheAsBitmap = true;
